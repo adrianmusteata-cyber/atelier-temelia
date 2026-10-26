@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F5EFE6">
+  <meta name="format-detection" content="telephone=no">
+  <title>Atelier Temelia — Arhitectură & Rezistență</title>
+  <meta name="description" content="Birou de arhitectură și inginerie structurală. Proiectăm case, ansambluri rezidențiale și clădiri pentru firme — arhitectura și rezistența sub același acoperiș.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="#top" class="brand" aria-label="Atelier Temelia">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 15 L16 5 L28 15" /><path d="M8 15 V25 M24 15 V25" /><rect x="3" y="25" width="26" height="3" />
+        </svg>
+        <span>Atelier <em>Temelia</em></span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="#poveste" data-i18n="nav.how">Cum lucrăm</a>
+        <a href="#servicii" data-i18n="nav.services">Servicii</a>
+        <a href="#proiecte" data-i18n="nav.projects">Proiecte</a>
+        <a href="#intrebari" data-i18n="nav.faq">Întrebări</a>
+        <a href="#contact" data-i18n="nav.contact">Contact</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="lang" id="langToggle" type="button" aria-label="Schimbă limba / Change language">
+          <span data-lang="ro" class="is-on">RO</span><span class="sep">/</span><span data-lang="en">EN</span>
+        </button>
+        <a class="btn btn-sm nav-cta" href="#contact" data-i18n="cta.offer">Cere o ofertă</a>
+        <button class="burger" id="burger" type="button" aria-label="Meniu"><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow reveal" data-i18n="hero.eyebrow">Arhitectură & inginerie structurală · Cluj-Napoca</p>
+          <h1 class="hero-title">
+            <span class="line"><span data-i18n="hero.l1">Spații calde,</span></span>
+            <span class="line"><span data-i18n="hero.l2"><em>structuri</em> care</span></span>
+            <span class="line"><span data-i18n="hero.l3">durează.</span></span>
+          </h1>
+          <p class="hero-lead reveal" data-i18n="hero.lead">Proiectăm case, ansambluri rezidențiale și clădiri pentru firme. Arhitectura și rezistența, sub același acoperiș — un singur interlocutor, de la prima schiță până la recepție.</p>
+          <div class="hero-cta reveal">
+            <a href="#contact" class="btn"><span data-i18n="cta.offer">Cere o ofertă</span> <span class="arrow">→</span></a>
+            <a href="#proiecte" class="btn btn-ghost" data-i18n="cta.projects">Vezi proiectele</a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="arch">
+            <svg class="hero-svg" viewBox="0 0 400 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <defs>
+                <linearGradient id="heroSky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#EBD3B6" />
+                  <stop offset=".6" stop-color="#E2B48C" />
+                  <stop offset="1" stop-color="#D49A70" />
+                </linearGradient>
+              </defs>
+              <rect width="400" height="520" fill="url(#heroSky)" />
+              <circle class="sun" cx="282" cy="168" r="46" fill="#F6E1C4" />
+              <path d="M0 380 Q100 330 200 360 T400 338 V520 H0Z" fill="#C4916A" />
+              <path d="M0 432 Q130 404 250 424 T400 414 V520 H0Z" fill="#7F8060" />
+              <!-- ferestre luminate -->
+              <g class="glow-in">
+                <rect x="110" y="362" width="40" height="38" fill="#F7CF8F" />
+                <rect x="250" y="388" width="52" height="28" fill="#F7CF8F" />
+                <circle cx="160" cy="316" r="10" fill="#F7CF8F" />
+              </g>
+              <g class="hero-lines" fill="none" stroke="#2B2520" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path class="draw" style="--d:.5s" pathLength="1" d="M40 430 H360" />
+                <path class="draw" style="--d:.8s" pathLength="1" d="M90 430 V330 L160 270 L230 330 V430" />
+                <path class="draw" style="--d:1.1s" pathLength="1" d="M80 338 L160 262 L240 338" />
+                <path class="draw" style="--d:1.3s" pathLength="1" d="M230 372 H322 V430" />
+                <rect class="draw" style="--d:1.6s" pathLength="1" x="110" y="362" width="40" height="38" />
+                <rect class="draw" style="--d:1.7s" pathLength="1" x="175" y="382" width="26" height="48" />
+                <rect class="draw" style="--d:1.8s" pathLength="1" x="250" y="388" width="52" height="28" />
+                <circle class="draw" style="--d:1.9s" pathLength="1" cx="160" cy="316" r="10" />
+              </g>
+            </svg>
+          </div>
+          <div class="seal" aria-hidden="true">
+            <svg class="seal-text" viewBox="0 0 140 140">
+              <defs><path id="sealPath" d="M70,70 m-54,0 a54,54 0 1,1 108,0 a54,54 0 1,1 -108,0" /></defs>
+              <text><textPath href="#sealPath" textLength="336" lengthAdjust="spacing" data-i18n="hero.seal">ARHITECTURĂ · REZISTENȚĂ · AUTORIZARE · </textPath></text>
+            </svg>
+            <svg class="seal-mark" viewBox="0 0 32 32"><path d="M4 15 L16 5 L28 15" /><path d="M8 15 V25 M24 15 V25" /><rect x="3" y="25" width="26" height="3" /></svg>
+          </div>
+          <div class="hero-badge">
+            <strong data-i18n="hero.badge1">2 discipline</strong>
+            <span data-i18n="hero.badge2">1 singură echipă</span>
+          </div>
+        </div>
+      </div>
+      <a href="#poveste" class="scroll-hint" aria-label="Derulează"><span></span></a>
+    </section>
+
+    <!-- ============ MARQUEE ============ -->
+    <div class="marquee" aria-hidden="true"><div class="marquee-track" id="marquee"></div></div>
+
+    <!-- ============ STORY (desen la scroll) ============ -->
+    <section class="story" id="poveste">
+      <div class="story-sticky">
+        <div class="container story-grid">
+          <div class="story-copy">
+            <p class="eyebrow light" data-i18n="story.eyebrow">Cum lucrăm</p>
+            <h2 class="story-title" data-i18n="story.title">De la temelie <em>până acasă.</em></h2>
+            <ol class="story-steps">
+              <li class="story-step is-active">
+                <span class="num">01</span>
+                <div><h3 data-i18n="story.s1t">Fundația</h3><p data-i18n="story.s1p">Citim terenul: studiul geotehnic, reglementările urbanistice, orientarea. Orice proiect bun pornește de la o bază solidă.</p></div>
+              </li>
+              <li class="story-step">
+                <span class="num">02</span>
+                <div><h3 data-i18n="story.s2t">Structura</h3><p data-i18n="story.s2p">Inginerii noștri dimensionează stâlpii, grinzile și planșeele încă din faza de concept — nu după ce desenul e gata.</p></div>
+              </li>
+              <li class="story-step">
+                <span class="num">03</span>
+                <div><h3 data-i18n="story.s3t">Arhitectura</h3><p data-i18n="story.s3p">Volumele, lumina și materialele cresc odată cu structura. De aceea nimic nu trebuie refăcut la jumătatea drumului.</p></div>
+              </li>
+              <li class="story-step">
+                <span class="num">04</span>
+                <div><h3 data-i18n="story.s4t">Acasă</h3><p data-i18n="story.s4p">Un proiect complet, coerent și autorizat — gata de construit, cu noi alături pe șantier până la recepție.</p></div>
+              </li>
+            </ol>
+            <div class="story-progress"><span id="storyBar"></span></div>
+          </div>
+
+          <div class="story-visual">
+            <svg id="storySvg" viewBox="0 0 800 560" aria-hidden="true">
+              <defs>
+                <radialGradient id="warmGlow" cx="50%" cy="60%" r="50%">
+                  <stop offset="0" stop-color="#F4C27F" stop-opacity=".35" />
+                  <stop offset="1" stop-color="#F4C27F" stop-opacity="0" />
+                </radialGradient>
+                <pattern id="slats" width="10" height="10" patternUnits="userSpaceOnUse">
+                  <rect width="10" height="10" fill="#A8754B" />
+                  <rect width="2" height="10" fill="#8C5F3B" />
+                </pattern>
+                <filter id="blurGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="6" result="b" />
+                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+              </defs>
+
+              <!-- Etapa 4: culori și lumină (sub linii) -->
+              <ellipse class="fill" data-stage="4" cx="400" cy="380" rx="380" ry="230" fill="url(#warmGlow)" />
+              <circle class="fill" data-stage="4" cx="660" cy="110" r="22" fill="#F3E7D3" />
+              <path class="fill" data-stage="4" d="M150 470 V300 L310 195 L470 300 V470Z" fill="#E6D9C4" />
+              <path class="fill" data-stage="4" d="M135 310 L310 190 L485 310 L470 300 L310 195 L150 300Z" fill="#B5643C" />
+              <rect class="fill" data-stage="4" x="470" y="380" width="190" height="90" fill="url(#slats)" />
+              <g class="fill" data-stage="4" filter="url(#blurGlow)" fill="#F4C27F">
+                <rect x="190" y="400" width="100" height="55" />
+                <rect x="210" y="320" width="70" height="50" />
+                <circle cx="310" cy="255" r="18" />
+                <rect x="500" y="400" width="130" height="60" />
+              </g>
+              <rect class="fill" data-stage="4" x="330" y="395" width="40" height="75" fill="#8E4A2A" />
+              <circle class="fill" data-stage="4" cx="722" cy="372" r="48" fill="#6E7350" />
+              <circle class="fill" data-stage="4" cx="694" cy="404" r="32" fill="#5F6347" />
+
+              <!-- Etapa 1: terenul și fundația -->
+              <g class="st s1">
+                <path data-stage="1" pathLength="1" d="M40 470 H760" />
+                <path data-stage="1" pathLength="1" d="M70 476 l-14 16 M110 476 l-14 16 M150 502 l-14 16 M190 502 l-14 16 M230 502 l-14 16 M270 502 l-14 16 M310 502 l-14 16 M350 502 l-14 16 M390 502 l-14 16 M430 502 l-14 16 M470 502 l-14 16 M510 502 l-14 16 M550 502 l-14 16 M590 502 l-14 16 M630 502 l-14 16 M690 476 l-14 16 M730 476 l-14 16" />
+                <rect data-stage="1" pathLength="1" x="145" y="470" width="520" height="26" />
+                <rect data-stage="1" pathLength="1" x="138" y="496" width="44" height="20" />
+                <rect data-stage="1" pathLength="1" x="288" y="496" width="44" height="20" />
+                <rect data-stage="1" pathLength="1" x="438" y="496" width="44" height="20" />
+                <rect data-stage="1" pathLength="1" x="628" y="496" width="44" height="20" />
+              </g>
+
+              <!-- Etapa 2: structura de rezistență -->
+              <g class="st s2">
+                <path class="axis" data-stage="2" pathLength="1" d="M160 150 V530 M310 150 V530 M460 150 V530 M650 150 V530" />
+                <circle data-stage="2" pathLength="1" cx="160" cy="136" r="13" />
+                <circle data-stage="2" pathLength="1" cx="310" cy="136" r="13" />
+                <circle data-stage="2" pathLength="1" cx="460" cy="136" r="13" />
+                <circle data-stage="2" pathLength="1" cx="650" cy="136" r="13" />
+                <path data-stage="2" pathLength="1" d="M160 470 V300" />
+                <path data-stage="2" pathLength="1" d="M310 470 V300" />
+                <path data-stage="2" pathLength="1" d="M460 470 V300" />
+                <path data-stage="2" pathLength="1" d="M560 470 V380" />
+                <path data-stage="2" pathLength="1" d="M650 470 V380" />
+                <path data-stage="2" pathLength="1" d="M150 385 H470" />
+                <path data-stage="2" pathLength="1" d="M150 300 H470" />
+                <path data-stage="2" pathLength="1" d="M460 380 H660" />
+                <path data-stage="2" pathLength="1" d="M150 300 L310 195 L470 300 M230 300 L310 247 L390 300 M310 195 V300" />
+                <path data-stage="2" pathLength="1" d="M150 168 H470 M150 160 V176 M470 160 V176" />
+                <path data-stage="2" pathLength="1" d="M105 470 V195 M97 470 H113 M97 385 H113 M97 300 H113 M97 195 H113" />
+              </g>
+              <g class="dim fill" data-stage="2">
+                <text x="160" y="140" text-anchor="middle">A</text>
+                <text x="310" y="140" text-anchor="middle">B</text>
+                <text x="460" y="140" text-anchor="middle">C</text>
+                <text x="650" y="140" text-anchor="middle">D</text>
+                <text x="310" y="160" text-anchor="middle">9.60 m</text>
+                <text x="90" y="474" text-anchor="end">±0.00</text>
+                <text x="90" y="389" text-anchor="end">+3.00</text>
+                <text x="90" y="304" text-anchor="end">+6.00</text>
+                <text x="90" y="199" text-anchor="end">+9.20</text>
+              </g>
+
+              <!-- Etapa 3: arhitectura -->
+              <g class="st s3">
+                <path data-stage="3" pathLength="1" d="M150 470 V300 L310 195 L470 300 V470" />
+                <path data-stage="3" pathLength="1" d="M135 310 L310 190 L485 310" />
+                <path data-stage="3" pathLength="1" d="M470 380 H660 V470 M462 375 H668" />
+                <rect data-stage="3" pathLength="1" x="190" y="400" width="100" height="55" />
+                <path data-stage="3" pathLength="1" d="M240 400 V455" />
+                <rect data-stage="3" pathLength="1" x="210" y="320" width="70" height="50" />
+                <circle data-stage="3" pathLength="1" cx="310" cy="255" r="18" />
+                <rect data-stage="3" pathLength="1" x="330" y="395" width="40" height="75" />
+                <rect data-stage="3" pathLength="1" x="500" y="400" width="130" height="60" />
+                <path data-stage="3" pathLength="1" d="M543 400 V460 M587 400 V460" />
+              </g>
+
+              <!-- Etapa 4: viața din jur -->
+              <g class="st s4">
+                <path data-stage="4" pathLength="1" d="M722 470 V390 M722 420 L700 400 M722 410 L742 392" />
+                <path data-stage="4" pathLength="1" d="M330 470 L300 530 M370 470 L400 530" />
+                <path data-stage="4" pathLength="1" d="M60 470 q4 -14 8 0 M84 470 q4 -18 8 0 M590 470 q4 -12 8 0 M760 470 q-4 -14 -8 0" />
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SERVICII ============ -->
+    <section class="section synergy" id="servicii">
+      <div class="container">
+        <div class="section-head center reveal">
+          <p class="eyebrow" data-i18n="svc.eyebrow">Servicii</p>
+          <h2 data-i18n="svc.title">Două discipline. <em>Un singur acoperiș.</em></h2>
+          <p class="lead" data-i18n="svc.lead">Când arhitectul și inginerul structurist lucrează la aceeași masă, proiectul iese mai coerent, mai rapid și fără surprize pe șantier.</p>
+        </div>
+
+        <div class="venn" aria-hidden="true">
+          <div class="circle c1"><span data-i18n="svc.arch">Arhitectură</span></div>
+          <div class="circle c2"><span data-i18n="svc.struct">Rezistență</span></div>
+          <div class="venn-core" data-i18n="svc.core">un singur<br>interlocutor</div>
+        </div>
+
+        <div class="services">
+          <article class="service-card reveal">
+            <div class="service-top">
+              <svg class="service-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 40 V20 L24 8 L42 20 V40 Z" /><path d="M18 40 V28 H30 V40" /><circle cx="24" cy="19" r="3" /></svg>
+              <span class="service-num">A</span>
+            </div>
+            <h3 data-i18n="svc.a.t">Proiectare de arhitectură</h3>
+            <p data-i18n="svc.a.p">Gândim spații frumoase și ușor de trăit, adaptate terenului, bugetului și felului în care vrei să locuiești sau să lucrezi.</p>
+            <ul>
+              <li data-i18n="svc.a.1">Studii de fezabilitate & concept</li>
+              <li data-i18n="svc.a.2">Documentații pentru autorizare (DTAC)</li>
+              <li data-i18n="svc.a.3">Proiect tehnic (PTh) & detalii de execuție</li>
+              <li data-i18n="svc.a.4">Design interior & randări 3D</li>
+              <li data-i18n="svc.a.5">Asistență tehnică pe șantier</li>
+            </ul>
+          </article>
+          <article class="service-card dark reveal">
+            <div class="service-top">
+              <svg class="service-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 40 H42 M10 40 V12 M24 40 V12 M38 40 V12 M6 12 H42 M6 26 H42" /><path d="M10 12 L24 26 L38 12" /></svg>
+              <span class="service-num">B</span>
+            </div>
+            <h3 data-i18n="svc.b.t">Proiectare de rezistență</h3>
+            <p data-i18n="svc.b.p">Structuri sigure, eficiente și economice — calculate atent, pentru clădiri care rezistă în timp și la seism.</p>
+            <ul>
+              <li data-i18n="svc.b.1">Structuri din beton armat, metal și lemn</li>
+              <li data-i18n="svc.b.2">Calcul seismic conform normativelor în vigoare</li>
+              <li data-i18n="svc.b.3">Expertize tehnice pentru clădiri existente</li>
+              <li data-i18n="svc.b.4">Consolidări, reabilitări & supraetajări</li>
+              <li data-i18n="svc.b.5">Optimizarea costurilor de execuție</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CIFRE ============ -->
+    <section class="stats-band">
+      <div class="container stats">
+        <div class="stat"><span class="stat-num" data-count="14">0</span><span class="stat-label" data-i18n="stats.1">ani de experiență</span></div>
+        <div class="stat"><span class="stat-num" data-count="230" data-suffix="+">0</span><span class="stat-label" data-i18n="stats.2">proiecte livrate</span></div>
+        <div class="stat"><span class="stat-num" data-count="85000">0</span><span class="stat-label" data-i18n="stats.3">mp proiectați</span></div>
+        <div class="stat"><span class="stat-num" data-count="9">0</span><span class="stat-label" data-i18n="stats.4">arhitecți & ingineri în echipă</span></div>
+      </div>
+    </section>
+
+    <!-- ============ PROIECTE ============ -->
+    <section class="section projects" id="proiecte">
+      <div class="container">
+        <div class="projects-head">
+          <div class="section-head reveal">
+            <p class="eyebrow" data-i18n="proj.eyebrow">Portofoliu</p>
+            <h2 data-i18n="proj.title">Proiecte <em>selectate</em></h2>
+          </div>
+          <div class="filters reveal" role="tablist">
+            <button class="filter is-on" data-filter="all" data-i18n="proj.f.all">Toate</button>
+            <button class="filter" data-filter="rez" data-i18n="proj.f.rez">Rezidențial</button>
+            <button class="filter" data-filter="dev" data-i18n="proj.f.dev">Ansambluri</button>
+            <button class="filter" data-filter="com" data-i18n="proj.f.com">Comercial</button>
+          </div>
+        </div>
+
+        <div class="project-grid" id="projectGrid">
+          <!-- Imaginile sunt ilustrații provizorii: înlocuiește .project-media cu <img> când ai poze reale -->
+          <article class="project reveal" data-cat="rez" data-art="house">
+            <div class="project-media"></div>
+            <div class="project-info">
+              <div><h3 data-i18n="p1.t">Casa dintre livezi</h3><p data-i18n="p1.m">Feleacu · 2024 · 240 mp</p></div>
+              <span class="tag" data-i18n="tag.both">Arhitectură + Rezistență</span>
+            </div>
+          </article>
+          <article class="project reveal" data-cat="rez" data-art="cabin">
+            <div class="project-media"></div>
+            <div class="project-info">
+              <div><h3 data-i18n="p2.t">Cabana Valea Ierii</h3><p data-i18n="p2.m">Valea Ierii · 2025 · 120 mp</p></div>
+              <span class="tag" data-i18n="tag.both">Arhitectură + Rezistență</span>
+            </div>
+          </article>
+          <article class="project reveal" data-cat="dev" data-art="block">
+            <div class="project-media"></div>
+            <div class="project-info">
+              <div><h3 data-i18n="p3.t">Ansamblul Teilor</h3><p data-i18n="p3.m">Cluj-Napoca · 2024 · 48 apartamente</p></div>
+              <span class="tag" data-i18n="tag.both">Arhitectură + Rezistență</span>
+            </div>
+          </article>
+          <article class="project reveal" data-cat="rez" data-art="villa">
+            <div class="project-media"></div>
+            <div class="project-info">
+              <div><h3 data-i18n="p4.t">Vila de pe pantă</h3><p data-i18n="p4.m">Florești · 2023 · 380 mp</p></div>
+              <span class="tag" data-i18n="tag.arch">Arhitectură</span>
+            </div>
+          </article>
+          <article class="project reveal" data-cat="com" data-art="office">
+            <div class="project-media"></div>
+            <div class="project-info">
+              <div><h3 data-i18n="p5.t">Sediul Nordwood</h3><p data-i18n="p5.m">Cluj-Napoca · 2022 · 1.900 mp</p></div>
+              <span class="tag" data-i18n="tag.both">Arhitectură + Rezistență</span>
+            </div>
+          </article>
+          <article class="project reveal" data-cat="com" data-art="hall">
+            <div class="project-media"></div>
+            <div class="project-info">
+              <div><h3 data-i18n="p6.t">Hala logistică Jucu</h3><p data-i18n="p6.m">Jucu · 2023 · 4.200 mp</p></div>
+              <span class="tag" data-i18n="tag.struct">Rezistență</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCES ============ -->
+    <section class="section process">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow" data-i18n="proc.eyebrow">Procesul</p>
+          <h2 data-i18n="proc.title">Cinci pași, <em>fără surprize.</em></h2>
+        </div>
+        <ol class="process-list">
+          <li><span class="p-num">01</span><h3 data-i18n="proc.1t">Discuția inițială</h3><p data-i18n="proc.1p">Ne povestești ce îți dorești. Analizăm terenul, actele și bugetul — gratuit.</p></li>
+          <li><span class="p-num">02</span><h3 data-i18n="proc.2t">Concept</h3><p data-i18n="proc.2p">Schițe, volume și primele randări, verificate structural din prima zi.</p></li>
+          <li><span class="p-num">03</span><h3 data-i18n="proc.3t">Autorizare</h3><p data-i18n="proc.3p">Pregătim documentația DTAC și te ghidăm prin avize și autorizația de construire.</p></li>
+          <li><span class="p-num">04</span><h3 data-i18n="proc.4t">Proiect tehnic</h3><p data-i18n="proc.4p">Planuri de execuție complete — arhitectură și rezistență, perfect corelate.</p></li>
+          <li><span class="p-num">05</span><h3 data-i18n="proc.5t">Pe șantier</h3><p data-i18n="proc.5p">Asistență tehnică și verificări pe faze determinante, până la recepție.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ TESTIMONIALE (provizorii — înlocuiește cu recenzii reale) ============ -->
+    <section class="section quotes">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow" data-i18n="q.eyebrow">Clienți</p>
+          <h2 data-i18n="q.title">Ce spun <em>oamenii</em></h2>
+        </div>
+        <div class="quote-grid">
+          <figure class="quote reveal">
+            <blockquote data-i18n="q.1">„Am avut un singur om de contact pentru tot proiectul. Nicio pasare de responsabilitate între arhitect și inginer.”</blockquote>
+            <figcaption><strong>Maria & Andrei P.</strong><span data-i18n="q.1c">Casă unifamilială, Feleacu</span></figcaption>
+          </figure>
+          <figure class="quote reveal">
+            <blockquote data-i18n="q.2">„Structura a fost optimizată încă din concept. Am economisit serios la execuție, fără compromisuri.”</blockquote>
+            <figcaption><strong>Radu M.</strong><span data-i18n="q.2c">Dezvoltator, Ansamblul Teilor</span></figcaption>
+          </figure>
+          <figure class="quote reveal">
+            <blockquote data-i18n="q.3">„Termene respectate, comunicare clară și o clădire de birouri în care echipa noastră chiar se simte bine.”</blockquote>
+            <figcaption><strong>Ioana S.</strong><span data-i18n="q.3c">Director, Nordwood</span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section faq" id="intrebari">
+      <div class="container faq-grid">
+        <div class="section-head reveal">
+          <p class="eyebrow" data-i18n="faq.eyebrow">Întrebări frecvente</p>
+          <h2 data-i18n="faq.title">Bine de <em>știut</em></h2>
+          <p class="lead" data-i18n="faq.lead">Nu găsești răspunsul? Sună-ne sau scrie-ne — răspundem în aceeași zi lucrătoare.</p>
+        </div>
+        <div class="faq-list reveal">
+          <details open>
+            <summary data-i18n="faq.1q">Cât costă un proiect?</summary>
+            <p data-i18n="faq.1a">Depinde de suprafață, complexitate și fazele de care ai nevoie. După o primă discuție îți trimitem o ofertă clară, defalcată pe etape, fără costuri ascunse.</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.2q">Cât durează până obțin autorizația de construire?</summary>
+            <p data-i18n="faq.2a">Pentru o casă, documentația DTAC e gata de regulă în 4–8 săptămâni de la aprobarea conceptului. Durata avizelor și a autorizației depinde apoi de primărie.</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.3q">De ce e mai bine ca arhitectura și rezistența să fie făcute de aceeași echipă?</summary>
+            <p data-i18n="faq.3a">Pentru că structura se gândește odată cu spațiul. Eviți reproiectările, întârzierile și costurile apărute când doi proiectanți separați nu se corelează.</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.4q">Faceți doar proiectul de rezistență, dacă am deja arhitect?</summary>
+            <p data-i18n="faq.4a">Da. Colaborăm des cu alți arhitecți și birouri, pentru care realizăm proiectul de rezistență și expertizele tehnice.</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.5q">Lucrați și în afara Clujului?</summary>
+            <p data-i18n="faq.5a">Da, proiectăm în toată țara. Pentru vizitele pe teren și pe șantier stabilim împreună un program potrivit.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="contact" id="contact">
+      <div class="container contact-grid">
+        <div class="contact-copy reveal">
+          <p class="eyebrow light" data-i18n="c.eyebrow">Contact</p>
+          <h2 data-i18n="c.title">Hai să construim <em>ceva bun</em> împreună.</h2>
+          <p class="lead" data-i18n="c.lead">Spune-ne pe scurt despre proiect. Revenim cu o ofertă în maximum 48 de ore.</p>
+          <ul class="contact-list">
+            <li><span data-i18n="c.phone">Telefon</span><a href="tel:+40721000000">+40 721 000 000</a></li>
+            <li><span>WhatsApp</span><a href="https://wa.me/40721000000" target="_blank" rel="noopener" data-i18n="c.wa">Scrie-ne pe WhatsApp</a></li>
+            <li><span>Email</span><a href="mailto:contact@atelier-temelia.ro">contact@atelier-temelia.ro</a></li>
+            <li><span data-i18n="c.addr">Birou</span><p>Str. Exemplului 12, Cluj-Napoca</p></li>
+          </ul>
+        </div>
+
+        <form class="contact-form reveal" id="contactForm" novalidate>
+          <div class="field"><label for="f-name" data-i18n="f.name">Nume</label><input id="f-name" name="name" required autocomplete="name"></div>
+          <div class="field"><label for="f-phone" data-i18n="f.phone">Telefon</label><input id="f-phone" name="phone" type="tel" required autocomplete="tel"></div>
+          <div class="field full"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required autocomplete="email"></div>
+          <div class="field">
+            <label for="f-type" data-i18n="f.type">Tip proiect</label>
+            <select id="f-type" name="type">
+              <option data-i18n="f.t1">Casă unifamilială</option>
+              <option data-i18n="f.t2">Ansamblu rezidențial</option>
+              <option data-i18n="f.t3">Clădire de birouri / comercială</option>
+              <option data-i18n="f.t4">Hală / industrial</option>
+              <option data-i18n="f.t5">Expertiză / consolidare</option>
+              <option data-i18n="f.t6">Altceva</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-service" data-i18n="f.service">Servicii dorite</label>
+            <select id="f-service" name="service">
+              <option data-i18n="f.s1">Arhitectură + Rezistență</option>
+              <option data-i18n="f.s2">Doar arhitectură</option>
+              <option data-i18n="f.s3">Doar rezistență</option>
+              <option data-i18n="f.s4">Nu știu încă</option>
+            </select>
+          </div>
+          <div class="field full"><label for="f-msg" data-i18n="f.msg">Despre proiect</label><textarea id="f-msg" name="message" rows="4" data-i18n-ph="f.msgph" placeholder="Localitate, suprafață aproximativă, ce îți dorești…"></textarea></div>
+          <label class="consent full"><input type="checkbox" required> <span data-i18n="f.consent">Sunt de acord cu prelucrarea datelor pentru a fi contactat.</span></label>
+          <button class="btn btn-clay full" type="submit"><span data-i18n="f.send">Trimite cererea</span> <span class="arrow">→</span></button>
+          <p class="form-msg" id="formMsg" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <a href="#top" class="brand light">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 L16 5 L28 15" /><path d="M8 15 V25 M24 15 V25" /><rect x="3" y="25" width="26" height="3" /></svg>
+        <span>Atelier <em>Temelia</em></span>
+      </a>
+      <p>© <span id="year">2026</span> Atelier Temelia SRL · <span data-i18n="foot.tag">Arhitectură & Rezistență</span></p>
+    </div>
+  </footer>
+
+  <a class="wa-float" href="https://wa.me/40721000000" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3a.5.5 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3Z" /></svg>
+  </a>
+
+  <script src="script.js"></script>
+</body>
+</html>
