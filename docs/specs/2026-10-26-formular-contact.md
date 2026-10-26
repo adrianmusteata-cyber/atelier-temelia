@@ -1,6 +1,6 @@
 # Formular de contact funcțional (Telegram, admin, email)
 
-> Stare: Confirmată (26.10.2026). Etapa 1 livrată (Telegram). Etapa 2 livrată și verificată de proprietar: Supabase + panou /admin. Emailul către proprietar (Resend) e scris, dar inactiv până se adaugă RESEND_API_KEY, OWNER_EMAIL, MAIL_FROM. Etapa 3 nu e începută.
+> Stare: Confirmată (26.10.2026). Etapa 1 livrată (Telegram). Etapa 2 livrată și verificată de proprietar: Supabase + panou /admin. Emailul către proprietar (Resend) e scris, dar amânat la cererea proprietarului (26.10.2026): OWNER_EMAIL și MAIL_FROM sunt deja în Vercel; se activează doar adăugând RESEND_API_KEY și republicând. Etapa 3 nu e începută.
 
 ## Pe scurt
 Acum formularul de pe site e doar o demonstrație: afișează „Mulțumim” și nu trimite nimic. O cerere reală s-a pierdut deja. Îl facem să livreze cererile în trei etape:
