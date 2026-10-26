@@ -459,27 +459,36 @@
           <div class="field">
             <label for="f-type" data-i18n="f.type">Tip proiect</label>
             <select id="f-type" name="type">
-              <option data-i18n="f.t1">Casă unifamilială</option>
-              <option data-i18n="f.t2">Ansamblu rezidențial</option>
-              <option data-i18n="f.t3">Clădire de birouri / comercială</option>
-              <option data-i18n="f.t4">Hală / industrial</option>
-              <option data-i18n="f.t5">Expertiză / consolidare</option>
-              <option data-i18n="f.t6">Altceva</option>
+              <option value="casa" data-i18n="f.t1">Casă unifamilială</option>
+              <option value="ansamblu" data-i18n="f.t2">Ansamblu rezidențial</option>
+              <option value="birouri" data-i18n="f.t3">Clădire de birouri / comercială</option>
+              <option value="hala" data-i18n="f.t4">Hală / industrial</option>
+              <option value="expertiza" data-i18n="f.t5">Expertiză / consolidare</option>
+              <option value="altceva" data-i18n="f.t6">Altceva</option>
             </select>
           </div>
           <div class="field">
             <label for="f-service" data-i18n="f.service">Servicii dorite</label>
             <select id="f-service" name="service">
-              <option data-i18n="f.s1">Arhitectură + Rezistență</option>
-              <option data-i18n="f.s2">Doar arhitectură</option>
-              <option data-i18n="f.s3">Doar rezistență</option>
-              <option data-i18n="f.s4">Nu știu încă</option>
+              <option value="arh_rez" data-i18n="f.s1">Arhitectură + Rezistență</option>
+              <option value="arh" data-i18n="f.s2">Doar arhitectură</option>
+              <option value="rez" data-i18n="f.s3">Doar rezistență</option>
+              <option value="nu_stiu" data-i18n="f.s4">Nu știu încă</option>
             </select>
           </div>
           <div class="field full"><label for="f-msg" data-i18n="f.msg">Despre proiect</label><textarea id="f-msg" name="message" rows="4" data-i18n-ph="f.msgph" placeholder="Localitate, suprafață aproximativă, ce îți dorești…"></textarea></div>
-          <label class="consent full"><input type="checkbox" required> <span data-i18n="f.consent">Sunt de acord cu prelucrarea datelor pentru a fi contactat.</span></label>
-          <button class="btn btn-clay full" type="submit"><span data-i18n="f.send">Trimite cererea</span> <span class="arrow">→</span></button>
+          <div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" tabindex="-1" autocomplete="off"></div>
+          <label class="consent full"><input type="checkbox" name="consent" required> <span data-i18n="f.consent">Sunt de acord ca Atelier Temelia să folosească numele, telefonul și emailul meu doar pentru a-mi răspunde la această cerere. Datele nu sunt transmise altor firme în scop de marketing. Pentru ștergerea datelor scrieți la adrian.musteata@lh47arch.com.</span></label>
+          <button class="btn btn-clay full" type="submit" id="formSend"><span data-i18n="f.send">Trimite cererea</span> <span class="arrow">→</span></button>
           <p class="form-msg" id="formMsg" role="status"></p>
+          <div class="form-fallback full" id="formFallback" hidden>
+            <p data-i18n="f.fail">Nu am putut trimite cererea. Scrieți-ne direct:</p>
+            <div class="fallback-actions">
+              <a class="btn btn-clay btn-sm" id="waPrefill" href="https://wa.me/37368133945" target="_blank" rel="noopener" data-i18n="f.waSend">Trimite pe WhatsApp</a>
+              <a class="btn btn-line btn-sm" href="https://wa.me/37368133945" target="_blank" rel="noopener">WhatsApp</a>
+              <a class="btn btn-line btn-sm" href="tel:+37368133945" data-i18n="f.call">Sună</a>
+            </div>
+          </div>
         </form>
       </div>
     </section>

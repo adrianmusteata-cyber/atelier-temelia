@@ -59,12 +59,13 @@
     'f.msgph': 'Location, approximate area, what you have in mind…',
     'f.t1': 'Family house', 'f.t2': 'Residential development', 'f.t3': 'Office / commercial building', 'f.t4': 'Hall / industrial', 'f.t5': 'Assessment / strengthening', 'f.t6': 'Something else',
     'f.s1': 'Architecture + Structure', 'f.s2': 'Architecture only', 'f.s3': 'Structure only', 'f.s4': 'Not sure yet',
-    'f.consent': 'I agree to the processing of my data in order to be contacted.', 'f.send': 'Send request',
+    'f.consent': 'I agree that Atelier Temelia may use my name, phone and email only to reply to this request. The data is not shared with other companies for marketing. To have your data deleted, write to adrian.musteata@lh47arch.com.',
+    'f.send': 'Send request', 'f.fail': "We couldn't send your request. Contact us directly:", 'f.waSend': 'Send via WhatsApp', 'f.call': 'Call',
     'foot.tag': 'Architecture & Structure',
   };
   const MSG = {
-    ro: { ok: 'Mulțumim! Am primit cererea și revenim în curând.', err: 'Completează câmpurile marcate, te rog.' },
-    en: { ok: 'Thank you! We received your request and will be in touch soon.', err: 'Please fill in the highlighted fields.' },
+    ro: { ok: 'Mulțumim! Am primit cererea și revenim în curând.', err: 'Completează câmpurile marcate, te rog.', sending: 'Se trimite…' },
+    en: { ok: 'Thank you! We received your request and will be in touch soon.', err: 'Please fill in the highlighted fields.', sending: 'Sending…' },
   };
   const MARQUEE = {
     ro: ['Case unifamiliale', 'Ansambluri rezidențiale', 'Clădiri de birouri', 'Hale industriale', 'Expertize tehnice', 'Consolidări', 'Design interior'],
@@ -236,19 +237,81 @@
     });
   }));
 
-  /* ---------- Formular (demo: nu trimite nicăieri încă) ---------- */
+  /* ---------- Formular → /api/contact (Telegram) ---------- */
   const form = $('#contactForm');
   const msg = $('#formMsg');
-  form.addEventListener('submit', e => {
+  const sendBtn = $('#formSend');
+  const sendLabel = $('[data-i18n="f.send"]', sendBtn);
+  const fallback = $('#formFallback');
+  const startedAt = Date.now();
+  let sending = false;
+
+  const markInvalid = (el, bad) => (el.closest('.field') || el.closest('.consent')).classList.toggle('invalid', bad);
+
+  // Textul cererii, gata de trimis pe WhatsApp dacă serverul nu răspunde
+  function whatsappText() {
+    const t = lang === 'en' ? EN : RO;
+    const opt = name => form.elements[name].selectedOptions[0]?.textContent.trim() || '';
+    return [
+      lang === 'en' ? 'Hello! I would like a quote:' : 'Bună ziua! Aș dori o ofertă:',
+      `${t['f.name']}: ${form.elements.name.value.trim()}`,
+      `${t['f.phone']}: ${form.elements.phone.value.trim()}`,
+      `Email: ${form.elements.email.value.trim()}`,
+      `${t['f.type']}: ${opt('type')}`,
+      `${t['f.service']}: ${opt('service')}`,
+      `${t['f.msg']}: ${form.elements.message.value.trim()}`,
+    ].join('\n');
+  }
+
+  function setSending(on) {
+    sending = on;
+    sendBtn.disabled = on;
+    sendLabel.textContent = on ? MSG[lang].sending : (lang === 'en' ? EN : RO)['f.send'];
+  }
+
+  form.addEventListener('submit', async e => {
     e.preventDefault();
+    if (sending) return;
+    fallback.hidden = true;
     let ok = true;
     $$('[required]', form).forEach(inp => {
       const bad = !inp.checkValidity();
-      (inp.closest('.field') || inp.closest('.consent')).classList.toggle('invalid', bad);
+      markInvalid(inp, bad);
       if (bad) ok = false;
     });
-    msg.textContent = ok ? MSG[lang].ok : MSG[lang].err;
-    if (ok) form.reset();
+    if (!ok) { msg.textContent = MSG[lang].err; return; }
+
+    const f = form.elements;
+    const payload = {
+      name: f.name.value, phone: f.phone.value, email: f.email.value,
+      type: f.type.value, service: f.service.value, message: f.message.value,
+      consent: f.consent.checked, website: f.website.value, lang, startedAt,
+    };
+    msg.textContent = '';
+    setSending(true);
+    try {
+      const r = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
+      });
+      const res = await r.json().catch(() => ({}));
+      if (r.ok && res.ok) {
+        msg.textContent = MSG[lang].ok;
+        form.reset();
+      } else if (r.status === 400 && Array.isArray(res.fields) && res.fields.length) {
+        res.fields.forEach(n => { if (f[n]) markInvalid(f[n], true); });
+        msg.textContent = MSG[lang].err;
+      } else {
+        throw new Error(`HTTP ${r.status}`);
+      }
+    } catch (err) {
+      $('#waPrefill').href = 'https://wa.me/37368133945?text=' + encodeURIComponent(whatsappText());
+      fallback.hidden = false;
+    } finally {
+      setSending(false);
+    }
   });
 
   $('#year').textContent = new Date().getFullYear();
