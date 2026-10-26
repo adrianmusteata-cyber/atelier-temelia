@@ -68,7 +68,7 @@ async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  // Etapa 2: întâi salvăm; dacă salvarea nu reușește, vizitatorul vede eroare
+  // Etapa 2: întâi salvăm
   let saved;
   try {
     const key = ipKey('contact', req);
@@ -76,8 +76,16 @@ async function handler(req, res) {
     await addHit(key);
     [saved] = await rest('requests', { method: 'POST', body: data, prefer: 'return=representation' });
   } catch (e) {
+    // Baza de date nu răspunde: cererea pleacă totuși pe Telegram, ca să nu se piardă.
+    // Vizitatorul vede eroare (cu WhatsApp) doar dacă nici Telegram nu merge.
     console.error('Salvarea în Supabase a eșuat:', e.message);
-    return res.status(502).json({ ok: false, error: 'save' });
+    try {
+      await sendTelegram(telegramText(data) + '\n\n⚠️ <i>Cererea NU a fost salvată în panou (eroare la baza de date).</i>');
+      return res.status(200).json({ ok: true });
+    } catch (e2) {
+      console.error('Trimiterea pe Telegram a eșuat:', e2.message);
+      return res.status(502).json({ ok: false, error: 'save' });
+    }
   }
 
   // Notificările nu mai pot pierde cererea: doar le scriem în log dacă eșuează

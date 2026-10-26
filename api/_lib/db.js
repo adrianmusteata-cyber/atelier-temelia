@@ -2,8 +2,8 @@
    Variabile: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (doar pe server). */
 
 function config() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = (process.env.SUPABASE_URL || '').trim();
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   if (!url || !key) throw new Error('Lipsesc SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY');
   return { url: url.replace(/\/+$/, ''), key };
 }
