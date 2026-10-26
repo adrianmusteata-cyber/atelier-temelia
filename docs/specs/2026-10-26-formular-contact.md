@@ -53,7 +53,7 @@ Considerăm că am reușit dacă nicio cerere trimisă nu se mai pierde: fie aju
 #### Etapa 2: bază de date, panou de administrare, email către proprietar
 
 **Salvarea cererilor**
-- [ ] Baza de date: Upstash Redis, adăugată din Vercel Marketplace (planul gratuit), cu variabilele de mediu create automat.
+- [ ] Baza de date: **Supabase** (Postgres, planul gratuit), la cererea utilizatorului (26.10.2026), în locul Upstash. Tabel `requests`; serverul scrie cu cheia `SUPABASE_SERVICE_ROLE_KEY` (doar în variabilele Vercel), cu Row Level Security activat și fără politici publice, deci nimeni nu citește tabelul din browser. Contorul de limită pe oră stă tot în Supabase (tabel separat) sau se renunță la el dacă e prea complex.
 - [ ] Ordinea de prelucrare: întâi se salvează cererea în baza de date. Dacă salvarea nu reușește, vizitatorul vede eroare. Dacă reușește, se trimit Telegram și emailul. Dacă unul dintre ele cade, vizitatorul tot vede succes, iar problema se scrie în log.
 - [ ] Fiecare cerere salvată are: `id`, `createdAt`, `name`, `phone`, `email`, `type`, `service`, `message`, `lang`, `status` (implicit `noua`), `statusUpdatedAt`.
 - [ ] Statusuri fixe: `noua` (Nouă), `contactat` (Contactat), `oferta` (Ofertă trimisă), `contract` (Contract), `refuzat` (Refuzat).
