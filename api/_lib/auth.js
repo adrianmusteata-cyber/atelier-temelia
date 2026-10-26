@@ -8,7 +8,7 @@ const MAX_AGE = 7 * 24 * 3600; // secunde
 
 function secret() {
   const s = process.env.ADMIN_SECRET;
-  if (!s || s.length < 16) throw new Error('ADMIN_SECRET lipsește sau e prea scurt');
+  if (!s || s.length < 12) throw new Error('ADMIN_SECRET lipsește sau e prea scurt (minimum 12 caractere)');
   return s;
 }
 
