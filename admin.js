@@ -57,6 +57,8 @@
   window.addEventListener('popstate', route);
 
   /* ---------- Autentificare ---------- */
+  $('#showPw').addEventListener('change', e => { $('#pw').type = e.target.checked ? 'text' : 'password'; });
+
   $('#loginForm').addEventListener('submit', async e => {
     e.preventDefault();
     const btn = $('#loginBtn'), msg = $('#loginMsg');

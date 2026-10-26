@@ -28,6 +28,8 @@ body.admin { min-height: 100vh; }
 }
 .admin-input:focus, .status-select:focus { border-color: var(--clay); }
 .login-card .btn { margin-top: 8px; }
+.show-pw { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--ink-2); cursor: pointer; }
+.show-pw input { accent-color: var(--clay); width: 18px; height: 18px; }
 .btn:disabled { opacity: .6; cursor: progress; }
 
 /* Filtru */
