@@ -25,10 +25,7 @@ function checkPassword(pw) {
   // Spațiile de la capete (copiate din greșeală) nu contează
   const expected = (process.env.ADMIN_PASSWORD || '').trim();
   if (!expected) throw new Error('ADMIN_PASSWORD lipsește');
-  const ok = typeof pw === 'string' && safeEqual(pw.trim(), expected);
-  // Diagnostic temporar: doar lungimi, niciodată parola
-  if (!ok) console.warn(`Parolă greșită: introdusă ${String(pw).trim().length} caractere, salvată ${expected.length} caractere, ADMIN_SECRET ${(process.env.ADMIN_SECRET || '').length} caractere`);
-  return ok;
+  return typeof pw === 'string' && safeEqual(pw.trim(), expected);
 }
 
 function setSession(res) {
