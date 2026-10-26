@@ -11,7 +11,10 @@ function config() {
 // path: de ex. 'requests?select=*&order=created_at.desc'
 async function rest(path, { method = 'GET', body, prefer } = {}) {
   const { url, key } = config();
-  const headers = { apikey: key, Authorization: `Bearer ${key}` };
+  // Cheile vechi (service_role) sunt JWT și merg și în Authorization;
+  // cheile noi (sb_secret_…) se trimit doar în antetul apikey
+  const headers = { apikey: key };
+  if (key.startsWith('eyJ')) headers.Authorization = `Bearer ${key}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (prefer) headers.Prefer = prefer;
   const r = await fetch(`${url}/rest/v1/${path}`, {
