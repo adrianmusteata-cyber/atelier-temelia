@@ -1,28 +1,22 @@
 /* ==========================================================
-   POST /api/contact — primește cererea din formular și o trimite pe Telegram.
-   Secretele stau doar în variabilele de mediu Vercel:
-   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+   POST /api/contact — primește cererea din formular.
+   Etapa 2: o salvează în Supabase, apoi anunță proprietarul pe Telegram
+   (și pe email, dacă Resend e configurat). Cât timp Supabase nu e
+   configurat, merge ca în Etapa 1: doar Telegram.
    ========================================================== */
+const { TYPES, SERVICES } = require('./_lib/labels');
+const { rest } = require('./_lib/db');
+const { ipKey, jsonBody, allow } = require('./_lib/http');
+const { countHits, addHit } = require('./_lib/rate');
+const { telegramText, sendTelegram, sendOwnerEmail, emailConfigured } = require('./_lib/notify');
 
-const TYPES = {
-  casa: 'Casă unifamilială',
-  ansamblu: 'Ansamblu rezidențial',
-  birouri: 'Clădire de birouri / comercială',
-  hala: 'Hală / industrial',
-  expertiza: 'Expertiză / consolidare',
-  altceva: 'Altceva',
-};
-const SERVICES = {
-  arh_rez: 'Arhitectură + Rezistență',
-  arh: 'Doar arhitectură',
-  rez: 'Doar rezistență',
-  nu_stiu: 'Nu știu încă',
-};
 const LIMITS = { name: 100, phone: 30, email: 150, message: 3000 };
 const MIN_FILL_MS = 3000;
+const MAX_PER_HOUR = 5;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const str = v => (typeof v === 'string' ? v.trim() : '');
+const dbConfigured = () => !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 // Întoarce { data } sau { errors: [câmpuri greșite] }
 function validate(body) {
@@ -52,61 +46,49 @@ function isSpam(body, now = Date.now()) {
   return !Number.isFinite(started) || now - started < MIN_FILL_MS;
 }
 
-const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-function telegramText(d, now = new Date()) {
-  const when = now.toLocaleString('ro-RO', { timeZone: 'Europe/Chisinau', dateStyle: 'short', timeStyle: 'short' });
-  return [
-    '<b>🏠 Cerere nouă de pe site</b>',
-    '',
-    `<b>Nume:</b> ${esc(d.name)}`,
-    `<b>Telefon:</b> ${esc(d.phone)}`,
-    `<b>Email:</b> ${esc(d.email)}`,
-    `<b>Tip proiect:</b> ${TYPES[d.type]}`,
-    `<b>Servicii:</b> ${SERVICES[d.service]}`,
-    `<b>Despre proiect:</b> ${d.message ? esc(d.message) : '—'}`,
-    '',
-    `<i>Limba: ${d.lang.toUpperCase()} · ${when} (ora Chișinăului)</i>`,
-  ].join('\n');
-}
-
-async function sendTelegram(text) {
-  const { TELEGRAM_BOT_TOKEN: token, TELEGRAM_CHAT_ID: chatId } = process.env;
-  if (!token || !chatId) throw new Error('Lipsesc TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID');
-  const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!r.ok) throw new Error(`Telegram ${r.status}: ${await r.text()}`);
-}
-
 async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ ok: false, error: 'method' });
-  }
-  let body = req.body;
-  if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }
-  if (!body || typeof body !== 'object') return res.status(400).json({ ok: false, error: 'invalid', fields: [] });
+  if (!allow(req, res, ['POST'])) return;
+  const body = jsonBody(req);
+  if (!body) return res.status(400).json({ ok: false, error: 'invalid', fields: [] });
 
-  // Roboții văd „succes”, dar nu se trimite nimic
+  // Roboții văd „succes”, dar nu se trimite și nu se salvează nimic
   if (isSpam(body)) return res.status(200).json({ ok: true });
 
   const { data, errors } = validate(body);
   if (errors) return res.status(400).json({ ok: false, error: 'invalid', fields: errors });
 
-  try {
-    await sendTelegram(telegramText(data));
-  } catch (e) {
-    console.error('Trimiterea pe Telegram a eșuat:', e.message);
-    return res.status(502).json({ ok: false, error: 'send' });
+  // Etapa 1 (fără bază de date): Telegram e singurul canal
+  if (!dbConfigured()) {
+    try {
+      await sendTelegram(telegramText(data));
+    } catch (e) {
+      console.error('Trimiterea pe Telegram a eșuat:', e.message);
+      return res.status(502).json({ ok: false, error: 'send' });
+    }
+    return res.status(200).json({ ok: true });
   }
+
+  // Etapa 2: întâi salvăm; dacă salvarea nu reușește, vizitatorul vede eroare
+  let saved;
+  try {
+    const key = ipKey('contact', req);
+    if (await countHits(key, 36e5) >= MAX_PER_HOUR) return res.status(429).json({ ok: false, error: 'rate' });
+    await addHit(key);
+    [saved] = await rest('requests', { method: 'POST', body: data, prefer: 'return=representation' });
+  } catch (e) {
+    console.error('Salvarea în Supabase a eșuat:', e.message);
+    return res.status(502).json({ ok: false, error: 'save' });
+  }
+
+  // Notificările nu mai pot pierde cererea: doar le scriem în log dacă eșuează
+  const jobs = [sendTelegram(telegramText(data, saved.created_at, true))];
+  if (emailConfigured()) jobs.push(sendOwnerEmail(data, saved.created_at));
+  (await Promise.allSettled(jobs)).forEach(r => {
+    if (r.status === 'rejected') console.error('Notificarea a eșuat:', r.reason?.message);
+  });
   return res.status(200).json({ ok: true });
 }
 
 module.exports = handler;
 module.exports.validate = validate;
 module.exports.isSpam = isSpam;
-module.exports.telegramText = telegramText;

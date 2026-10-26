@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F5EFE6">
+  <title>Cereri — Atelier Temelia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+  <header class="admin-bar">
+    <div class="container admin-bar-inner">
+      <a class="brand" href="/admin">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 L16 5 L28 15" /><path d="M8 15 V25 M24 15 V25" /><rect x="3" y="25" width="26" height="3" /></svg>
+        <span>Cereri <em>Temelia</em></span>
+      </a>
+      <button class="btn btn-sm btn-ghost" id="logout" hidden>Ieșire</button>
+    </div>
+  </header>
+
+  <main class="container admin-main">
+    <!-- Autentificare -->
+    <section id="view-login" class="admin-view" hidden>
+      <form class="login-card" id="loginForm">
+        <h1>Panou de administrare</h1>
+        <p class="muted">Introduceți parola ca să vedeți cererile.</p>
+        <label class="admin-label" for="pw">Parolă</label>
+        <input class="admin-input" id="pw" type="password" autocomplete="current-password" required>
+        <button class="btn" type="submit" id="loginBtn">Intră</button>
+        <p class="admin-msg" id="loginMsg" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- Lista -->
+    <section id="view-list" class="admin-view" hidden>
+      <h1 class="admin-title">Cereri</h1>
+      <nav class="status-filter" id="filter" aria-label="Filtru după status"></nav>
+      <p class="admin-msg" id="listMsg" role="status"></p>
+      <ul class="req-list" id="list"></ul>
+      <button class="btn btn-ghost btn-sm" id="more" hidden>Mai multe</button>
+    </section>
+
+    <!-- Detaliile unei cereri -->
+    <section id="view-detail" class="admin-view" hidden>
+      <a class="back" id="back" href="/admin">← Înapoi la listă</a>
+      <div id="detail"></div>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

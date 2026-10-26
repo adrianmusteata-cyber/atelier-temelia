@@ -1,0 +1,82 @@
+/* ==========================================================
+   Panoul de administrare — folosește variabilele din styles.css
+   ========================================================== */
+body.admin { min-height: 100vh; }
+.admin-bar {
+  position: sticky; top: 0; z-index: 10;
+  padding: calc(14px + env(safe-area-inset-top)) 0 14px;
+  background: rgba(245, 239, 230, .9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.admin-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-main { padding: 32px 0 80px; }
+.admin-title, .login-card h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin-bottom: 20px; }
+.muted { color: var(--ink-2); }
+.admin-msg { min-height: 1.4em; margin: 10px 0; font-size: .94rem; color: var(--clay-d); }
+
+/* Autentificare */
+.login-card {
+  max-width: 420px; margin: 8vh auto 0; padding: 36px 30px; border-radius: var(--radius);
+  background: rgba(255, 255, 255, .5); border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.login-card .muted { margin-bottom: 10px; }
+.admin-label { font-size: .74rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.admin-input, .status-select {
+  font: inherit; font-size: max(16px, 1em); color: var(--ink); background: #fff;
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; outline: none;
+}
+.admin-input:focus, .status-select:focus { border-color: var(--clay); }
+.login-card .btn { margin-top: 8px; }
+.btn:disabled { opacity: .6; cursor: progress; }
+
+/* Filtru */
+.status-filter { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none; }
+.status-filter::-webkit-scrollbar { display: none; }
+.status-filter a { flex: none; }
+.status-filter .count { opacity: .6; margin-left: 4px; }
+
+/* Lista */
+.req-list { display: grid; gap: 10px; }
+.req {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center;
+  padding: 16px 18px; border-radius: 18px; background: rgba(255, 255, 255, .45); border: 1px solid var(--line);
+  transition: border-color .3s, background .3s;
+}
+.req:hover { border-color: var(--ink-2); }
+.req.is-new { background: #fff; border-color: rgba(181, 100, 60, .5); box-shadow: inset 4px 0 0 var(--clay); }
+.req-name { font-family: var(--serif); font-size: 1.25rem; line-height: 1.2; }
+.req-meta { grid-column: 1; font-size: .88rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.req .badge { grid-row: 1 / span 2; grid-column: 2; }
+#more { margin-top: 18px; }
+
+/* Etichete de status */
+.badge { display: inline-block; font-size: .74rem; font-weight: 600; letter-spacing: .04em; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
+.badge.s-noua { background: var(--clay); color: #fff; }
+.badge.s-contactat { background: #E7D9B6; color: #6A5214; }
+.badge.s-oferta { background: #D9E1EC; color: #2F4A6B; }
+.badge.s-contract { background: #D6E3CC; color: #3E5A2A; }
+.badge.s-refuzat { background: var(--sand); color: var(--ink-2); }
+
+/* Detalii */
+.back { display: inline-block; margin-bottom: 18px; font-weight: 600; color: var(--clay-d); }
+.detail-card { padding: clamp(22px, 4vw, 40px); border-radius: var(--radius); background: rgba(255, 255, 255, .5); border: 1px solid var(--line); }
+.detail-card h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); margin-bottom: 6px; }
+.detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 24px; }
+.detail-grid { display: grid; grid-template-columns: 160px 1fr; gap: 0 18px; }
+.detail-grid dt, .detail-grid dd { padding: 12px 0; border-top: 1px solid var(--line); }
+.detail-grid dt { font-size: .76rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); padding-top: 15px; }
+.detail-grid dd { overflow-wrap: anywhere; }
+.detail-grid dd a { color: var(--clay-d); text-decoration: underline; text-underline-offset: 3px; }
+.detail-msg { white-space: pre-wrap; }
+.status-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.status-note { font-size: .86rem; color: var(--ink-2); }
+.status-note.ok { color: #3E5A2A; }
+.status-note.err { color: var(--clay-d); }
+
+@media (max-width: 600px) {
+  .admin-main { padding-top: 22px; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-grid dd { border-top: 0; padding-top: 0; }
+  .login-card { margin-top: 4vh; padding: 28px 22px; }
+}
