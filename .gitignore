@@ -1,0 +1,4 @@
+# Cheile și tokenurile stau doar în setările Vercel, niciodată în repo
+.env
+.env.*
+.vercel
