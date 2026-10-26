@@ -23,11 +23,7 @@ async function rest(path, { method = 'GET', body, prefer } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(10000),
   });
-  if (!r.ok) {
-    // Diagnostic temporar: doar forma cheii (prefix public + lungime), niciodată cheia
-    const shape = `cheie: începe cu "${key.slice(0, 10)}", ${key.length} caractere, ghilimele: ${/["']/.test(key)}, spații: ${/\s/.test(key)}`;
-    throw new Error(`Supabase ${r.status}: ${await r.text()} (${shape})`);
-  }
+  if (!r.ok) throw new Error(`Supabase ${r.status}: ${await r.text()}`);
   if (r.status === 204) return null;
   const text = await r.text();
   return text ? JSON.parse(text) : null;
