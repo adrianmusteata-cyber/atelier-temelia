@@ -105,18 +105,28 @@
     </a></li>`;
   }
 
+  // Doar ultima încărcare pornită are voie să scrie în listă:
+  // clicuri repetate nu mai dublează rândurile
+  let loadSeq = 0;
+  let loadingMore = false;
+
   async function loadList(reset) {
+    if (!reset && loadingMore) return;
+    const seq = ++loadSeq;
     const status = STATUSES[params().get('status')] ? params().get('status') : 'toate';
     const msg = $('#listMsg');
     if (reset) { cursor = null; $('#list').innerHTML = ''; }
     msg.textContent = reset ? 'Se încarcă…' : '';
     $('#more').hidden = true;
+    loadingMore = !reset;
     try {
       const qs = new URLSearchParams({ status });
-      if (cursor) qs.set('cursor', cursor);
+      if (!reset && cursor) qs.set('cursor', cursor);
       const data = await api('/api/admin/requests?' + qs);
+      if (seq !== loadSeq) return;
       show('list');
       renderFilter(data.counts, status);
+      if (reset) $('#list').innerHTML = '';
       $('#list').insertAdjacentHTML('beforeend', data.items.map(rowHtml).join(''));
       cursor = data.nextCursor;
       $('#more').hidden = !cursor;
@@ -124,11 +134,14 @@
       msg.textContent = empty ? (status === 'toate' ? 'Nicio cerere încă.' : 'Nicio cerere cu acest status.') : '';
       document.title = `${data.counts.noua ? `(${data.counts.noua}) ` : ''}Cereri — Atelier Temelia`;
     } catch (err) {
+      if (seq !== loadSeq) return;
       onError(err, () => {
         show('list');
         msg.innerHTML = 'Nu am putut încărca cererile. <button class="btn btn-sm btn-ghost" id="retry">Reîncearcă</button>';
         $('#retry').onclick = () => loadList(true);
       });
+    } finally {
+      if (seq === loadSeq) loadingMore = false;
     }
   }
 
@@ -153,11 +166,13 @@
   }
 
   async function loadDetail(id) {
+    const seq = ++loadSeq; // anulează și o încărcare de listă rămasă în curs
     $('#back').href = backHref();
     $('#detail').innerHTML = '<p class="admin-msg">Se încarcă…</p>';
     show('detail');
     try {
       const { item: r } = await api('/api/admin/requests/' + encodeURIComponent(id));
+      if (seq !== loadSeq) return;
       const phone = digits(r.phone);
       $('#detail').innerHTML = `
         <article class="detail-card">
@@ -187,6 +202,7 @@
         </article>`;
       bindStatus(r);
     } catch (err) {
+      if (seq !== loadSeq) return;
       onError(err, e => {
         $('#detail').innerHTML = e.status === 404
           ? `<p class="admin-msg">Cererea nu a fost găsită.</p><a class="btn btn-sm btn-ghost" href="${esc(backHref())}">Înapoi la listă</a>`
