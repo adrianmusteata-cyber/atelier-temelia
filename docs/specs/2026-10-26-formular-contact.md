@@ -121,7 +121,7 @@ Considerăm că am reușit dacă nicio cerere trimisă nu se mai pierde: fie aju
 - **Dublu clic sau Enter repetat**: cât timp trimiterea e în curs, butonul e dezactivat și se trimite o singură cerere.
 - **Spam (capcana sau trimitere în mai puțin de 3 secunde)**: robotul vede succes, dar nu se trimite și nu se salvează nimic.
 - **Etapa 1, Telegram nu răspunde**: e singurul canal, deci vizitatorul vede eroarea și butoanele de mai sus. Nimic nu se pierde, pentru că vizitatorul știe că trebuie să folosească WhatsApp.
-- **Etapa 2, baza de date nu răspunde**: vizitatorul vede eroare (nu se afișează succes dacă cererea nu s-a salvat).
+- **Etapa 2, baza de date nu răspunde**: cererea se trimite totuși pe Telegram, marcată „NU a fost salvată în panou”, iar vizitatorul vede succes. Eroare (cu WhatsApp) vede doar dacă nici Telegram nu merge. (Schimbat 26.10.2026, ca să nu se piardă cereri.)
 - **Etapa 2, Telegram sau emailul cad după salvare**: vizitatorul vede succes, iar cererea apare oricum în admin.
 - **Admin, parolă greșită**: „Parolă incorectă”. După 5 greșeli: „Prea multe încercări, reveniți în 15 minute”.
 - **Admin, sesiune expirată sau răspuns `401`**: orice ecran revine la formularul de parolă, fără să rămână date afișate.
