@@ -8,7 +8,7 @@
   const EN = {
     'nav.how': 'How we work', 'nav.services': 'Services', 'nav.projects': 'Projects', 'nav.faq': 'FAQ', 'nav.contact': 'Contact',
     'cta.offer': 'Request a quote', 'cta.projects': 'See projects',
-    'hero.eyebrow': 'Architecture & structural engineering · Cluj-Napoca',
+    'hero.eyebrow': 'Architecture & structural engineering · Chișinău',
     'hero.l1': 'Warm spaces,', 'hero.l2': '<em>structures</em> that', 'hero.l3': 'endure.',
     'hero.lead': 'We design homes, residential developments and buildings for businesses. Architecture and structural engineering under one roof — one point of contact, from the first sketch to final handover.',
     'hero.seal': 'ARCHITECTURE · STRUCTURE · PERMITTING · ',
@@ -52,7 +52,7 @@
     'faq.2q': 'How long until I get the building permit?', 'faq.2a': 'For a house, the permit documentation is usually ready 4–8 weeks after the concept is approved. Approval times then depend on the city hall.',
     'faq.3q': 'Why is it better to have architecture and structure done by the same team?', 'faq.3a': 'Because the structure is designed together with the space. You avoid redesigns, delays and extra costs that appear when two separate designers don’t coordinate.',
     'faq.4q': 'Do you do only the structural design if I already have an architect?', 'faq.4a': 'Yes. We often work with other architects and studios, providing structural design and technical assessments.',
-    'faq.5q': 'Do you work outside Cluj?', 'faq.5a': 'Yes, we design all over the country. We agree together on a schedule for site visits.',
+    'faq.5q': 'Do you work outside Chișinău?', 'faq.5a': 'Yes, we design all over the country. We agree together on a schedule for site visits.',
     'c.eyebrow': 'Contact', 'c.title': 'Let’s build <em>something good</em> together.', 'c.lead': 'Tell us briefly about your project. We’ll send a quote within 48 hours.',
     'c.phone': 'Phone', 'c.wa': 'Message us on WhatsApp', 'c.addr': 'Office',
     'f.name': 'Name', 'f.phone': 'Phone', 'f.type': 'Project type', 'f.service': 'Services needed', 'f.msg': 'About the project',
