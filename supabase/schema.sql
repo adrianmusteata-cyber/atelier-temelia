@@ -16,7 +16,7 @@ create table if not exists public.requests (
   message           text not null default '',
   lang              text not null default 'ro' check (lang in ('ro', 'en')),
   status            text not null default 'noua'
-                    check (status in ('noua', 'contactat', 'oferta', 'contract', 'refuzat')),
+                    check (status in ('noua', 'in_lucru', 'inchisa')),
   status_updated_at timestamptz not null default now()
 );
 

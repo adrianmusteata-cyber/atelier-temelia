@@ -57,10 +57,8 @@ body.admin { min-height: 100vh; }
 /* Etichete de status */
 .badge { display: inline-block; font-size: .74rem; font-weight: 600; letter-spacing: .04em; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
 .badge.s-noua { background: var(--clay); color: #fff; }
-.badge.s-contactat { background: #E7D9B6; color: #6A5214; }
-.badge.s-oferta { background: #D9E1EC; color: #2F4A6B; }
-.badge.s-contract { background: #D6E3CC; color: #3E5A2A; }
-.badge.s-refuzat { background: var(--sand); color: var(--ink-2); }
+.badge.s-in_lucru { background: #E7D9B6; color: #6A5214; }
+.badge.s-inchisa { background: var(--sand); color: var(--ink-2); }
 
 /* Detalii */
 .back { display: inline-block; margin-bottom: 18px; font-weight: 600; color: var(--clay-d); }

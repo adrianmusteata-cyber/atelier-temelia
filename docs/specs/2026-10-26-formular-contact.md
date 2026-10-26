@@ -39,7 +39,7 @@ Considerăm că am reușit dacă nicio cerere trimisă nu se mai pierde: fie aju
 
 #### Etapa 1: Telegram (urgent, se livrează separat)
 - [ ] Funcția serverless `api/contact.js` (Node, cu cât mai puține dependențe) acceptă doar `POST`, cu JSON: `name, phone, email, type, service, message, consent, lang, website, startedAt` (`website` e câmpul-capcană). Răspunde doar cu `{ ok: true }` sau cu o eroare și nu returnează niciodată datele salvate. Alte metode decât `POST` dau `405`.
-- [ ] Validare pe server: name, phone și email nu pot fi goale, email-ul trebuie să aibă un format valid, iar `consent === true`. Limite de lungime: name 100, phone 30, email 150, message 3000 de caractere. Dacă datele nu trec validarea, răspunsul e `400` cu o listă a câmpurilor greșite.
+- [ ] Validare pe server: name, phone, email și message (comentariul, minimum 3 caractere, obligatoriu cerut de temă din 26.10.2026) nu pot fi goale, email-ul trebuie să aibă un format valid, iar `consent === true`. Limite de lungime: name 100, phone 30, email 150, message 3000 de caractere. Dacă datele nu trec validarea, răspunsul e `400` cu o listă a câmpurilor greșite.
 - [ ] Câmp-capcană: un input `website` ascuns prin CSS (în afara ecranului), cu `tabindex="-1"`, `autocomplete="off"` și `aria-hidden="true"`. Dacă vine completat, serverul răspunde `200 { ok: true }` ca la succes, dar nu trimite și nu salvează nimic.
 - [ ] Verificare de timp: formularul trimite `startedAt`, momentul în care s-a încărcat pagina. Dacă trimiterea vine în mai puțin de 3 secunde, e tratată ca spam (același răspuns de succes fals).
 - [ ] Trimiterea pe Telegram se face prin Bot API `sendMessage`. Tokenul și chat_id-ul stau doar în variabilele de mediu Vercel (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) și nu apar niciodată în browser sau în repo.
@@ -56,7 +56,7 @@ Considerăm că am reușit dacă nicio cerere trimisă nu se mai pierde: fie aju
 - [ ] Baza de date: **Supabase** (Postgres, planul gratuit), la cererea utilizatorului (26.10.2026), în locul Upstash. Tabel `requests`; serverul scrie cu cheia `SUPABASE_SERVICE_ROLE_KEY` (doar în variabilele Vercel), cu Row Level Security activat și fără politici publice, deci nimeni nu citește tabelul din browser. Contorul de limită pe oră stă tot în Supabase (tabel separat) sau se renunță la el dacă e prea complex.
 - [ ] Ordinea de prelucrare: întâi se salvează cererea în baza de date. Dacă salvarea nu reușește, vizitatorul vede eroare. Dacă reușește, se trimit Telegram și emailul. Dacă unul dintre ele cade, vizitatorul tot vede succes, iar problema se scrie în log.
 - [ ] Fiecare cerere salvată are: `id`, `createdAt`, `name`, `phone`, `email`, `type`, `service`, `message`, `lang`, `status` (implicit `noua`), `statusUpdatedAt`.
-- [ ] Statusuri fixe: `noua` (Nouă), `contactat` (Contactat), `oferta` (Ofertă trimisă), `contract` (Contract), `refuzat` (Refuzat).
+- [ ] Statusuri fixe, ca în temă (новая / в работе / закрыта): `noua` (Nouă), `in_lucru` (În lucru), `inchisa` (Închisă). Schimbat 26.10.2026 din 5 statusuri; migrarea e în `supabase/migrations/2026-10-26-statusuri-3.sql`.
 - [ ] Limită de trimiteri: maximum 5 cereri pe oră de la aceeași adresă IP, cu contorul ținut în Redis și expirare după o oră. Peste limită, serverul răspunde `429`, iar vizitatorul vede mesajul de eroare cu butoanele WhatsApp și Sună.
 
 **Acces închis**
@@ -69,7 +69,7 @@ Considerăm că am reușit dacă nicio cerere trimisă nu se mai pierde: fie aju
 **Lista**
 - [ ] `GET /api/admin/requests?status=<status|toate>&cursor=<…>` întoarce cererile de la cea mai nouă la cea mai veche, câte 50, cu butonul „Mai multe”.
 - [ ] Fiecare rând arată data și ora, numele, telefonul, tipul proiectului și statusul (eticheta colorată). Cererile cu statusul „Nouă” se disting vizual.
-- [ ] Deasupra listei e un filtru după status: Toate / Nouă / Contactat / Ofertă trimisă / Contract / Refuzat, cu numărul de cereri pentru fiecare. Filtrul ales se păstrează în adresa paginii (de ex. `/admin?status=noua`), ca să rămână la reîncărcare.
+- [ ] Deasupra listei e un filtru după status: Toate / Nouă / În lucru / Închisă, cu numărul de cereri pentru fiecare. Filtrul ales se păstrează în adresa paginii (de ex. `/admin?status=noua`), ca să rămână la reîncărcare.
 
 **Detaliile unei cereri**
 - [ ] Un clic pe rând deschide cererea (`GET /api/admin/requests/:id`) și arată toate detaliile:

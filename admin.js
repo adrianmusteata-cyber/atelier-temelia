@@ -5,7 +5,7 @@
 (() => {
   const $ = (s, c = document) => c.querySelector(s);
 
-  const STATUSES = { noua: 'Nouă', contactat: 'Contactat', oferta: 'Ofertă trimisă', contract: 'Contract', refuzat: 'Refuzat' };
+  const STATUSES = { noua: 'Nouă', in_lucru: 'În lucru', inchisa: 'Închisă' };
   const TYPES = { casa: 'Casă unifamilială', ansamblu: 'Ansamblu rezidențial', birouri: 'Clădire de birouri / comercială', hala: 'Hală / industrial', expertiza: 'Expertiză / consolidare', altceva: 'Altceva' };
   const SERVICES = { arh_rez: 'Arhitectură + Rezistență', arh: 'Doar arhitectură', rez: 'Doar rezistență', nu_stiu: 'Nu știu încă' };
 

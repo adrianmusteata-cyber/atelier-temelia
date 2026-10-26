@@ -16,10 +16,8 @@ const SERVICES = {
 };
 const STATUSES = {
   noua: 'Nouă',
-  contactat: 'Contactat',
-  oferta: 'Ofertă trimisă',
-  contract: 'Contract',
-  refuzat: 'Refuzat',
+  in_lucru: 'În lucru',
+  inchisa: 'Închisă',
 };
 
 module.exports = { TYPES, SERVICES, STATUSES };

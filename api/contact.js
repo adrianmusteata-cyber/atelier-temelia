@@ -30,7 +30,8 @@ function validate(body) {
     lang: body.lang === 'en' ? 'en' : 'ro',
   };
   const errors = [];
-  for (const f of ['name', 'phone', 'email']) if (!data[f]) errors.push(f);
+  for (const f of ['name', 'phone', 'email', 'message']) if (!data[f]) errors.push(f);
+  if (data.message && data.message.length < 3) errors.push('message');
   if (data.email && !EMAIL_RE.test(data.email)) errors.push('email');
   for (const [f, max] of Object.entries(LIMITS)) if (data[f].length > max) errors.push(f);
   if (!TYPES[data.type]) errors.push('type');
