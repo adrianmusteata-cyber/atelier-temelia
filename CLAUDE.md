@@ -1,0 +1,13 @@
+# Atelier Temelia
+
+Site static (index.html, styles.css, script.js), fără build. Publicat pe Vercel la https://atelier-temelia.vercel.app,
+legat de GitHub: https://github.com/adrianmusteata-cyber/atelier-temelia (branch `main`).
+
+## Sincronizare local ↔ GitHub ↔ Vercel
+Folderul local, GitHub și site-ul live trebuie să fie mereu la fel.
+- Înainte de orice modificare: `git pull` (Git e în `C:\Program Files\Git\cmd\git.exe`).
+- După orice modificare: `git add -A`, `git commit -m "<descriere în română>"`, `git push`.
+  Vercel publică automat fiecare push pe `main` în ~1 minut.
+- Verifică pe telefon (lățime 375px) că nu apare scroll orizontal.
+
+Utilizatorul vorbește română; răspunde în română.
