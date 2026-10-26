@@ -111,7 +111,7 @@
   let loadingMore = false;
 
   async function loadList(reset) {
-    if (!reset && loadingMore) return;
+    if (!reset && (loadingMore || !cursor)) return;
     const seq = ++loadSeq;
     const status = STATUSES[params().get('status')] ? params().get('status') : 'toate';
     const msg = $('#listMsg');

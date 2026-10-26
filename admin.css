@@ -2,6 +2,8 @@
    Panoul de administrare — folosește variabilele din styles.css
    ========================================================== */
 body.admin { min-height: 100vh; }
+/* .btn are display: inline-flex, care altfel ar anula atributul hidden */
+.admin [hidden] { display: none !important; }
 .admin-bar {
   position: sticky; top: 0; z-index: 10;
   padding: calc(14px + env(safe-area-inset-top)) 0 14px;
