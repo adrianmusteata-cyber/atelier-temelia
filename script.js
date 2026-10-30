@@ -336,7 +336,8 @@
           size: box.clientWidth && box.clientWidth < 300 ? 'compact' : 'flexible',
           callback: tok => { st.tsToken = tok; },
           'expired-callback': () => { st.tsToken = ''; },
-          'error-callback': () => { st.tsToken = ''; },
+          // Codul erorii Turnstile se arată sub buton, ca să se poată afla cauza (domeniu, browser, rețea)
+          'error-callback': code => { st.tsToken = ''; st.tsError = String(code || ''); return true; },
         });
       } catch (e) { /* widgetul lipsește: trimiterea va cere reîncărcarea paginii */ }
     }
@@ -452,7 +453,7 @@
       } else if (code === 'viz_off') {
         vf.hidden = true; $('#vizOff').hidden = false;
       } else if (code === 'turnstile') {
-        vmsg.textContent = V().robot;
+        vmsg.textContent = V().robot + (st.tsError ? ` (Turnstile ${st.tsError})` : '');
       } else if (code === 'save') {
         vmsg.textContent = '';
         $('#vizFallback').hidden = false;
@@ -510,7 +511,10 @@
       };
       Object.entries(bad).forEach(([k, v]) => markBox(k, v));
       if (Object.values(bad).some(Boolean)) { vmsg.textContent = bad.files && !bad.name && !bad.phone ? V().needPhoto : V().err; return; }
-      if (!st.token && !st.tsToken) { vmsg.textContent = V().robot; return; }
+      if (!st.token && !st.tsToken) {
+        vmsg.textContent = V().robot + (st.tsError ? ` (Turnstile ${st.tsError})` : window.turnstile ? ' (Turnstile: fără răspuns)' : ' (Turnstile nu s-a încărcat)');
+        return;
+      }
 
       setBusy(true);
       vmsg.textContent = '';
