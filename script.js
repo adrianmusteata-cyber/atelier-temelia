@@ -206,6 +206,12 @@
   const sendBtn = $('#formSend');
   const sendLabel = $('[data-i18n="f.send"]', sendBtn);
   const fallback = $('#formFallback');
+  const done = $('#formDone');
+  $('#formAgain').addEventListener('click', () => {
+    done.hidden = true;
+    form.hidden = false;
+    form.elements.name.focus();
+  });
   const startedAt = Date.now();
   let sending = false;
 
@@ -263,8 +269,14 @@
       });
       const res = await r.json().catch(() => ({}));
       if (r.ok && res.ok) {
-        msg.textContent = X().ok;
+        // formularul dispare; rămâne doar confirmarea
         form.reset();
+        msg.textContent = '';
+        form.hidden = true;
+        done.hidden = false;
+        done.focus({ preventScroll: true });
+        done.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+        if (anim) gsap.fromTo(done.children, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .9, stagger: .1, ease: 'expo.out' });
       } else if (r.status === 400 && Array.isArray(res.fields) && res.fields.length) {
         res.fields.forEach(n => { if (f[n]) markInvalid(f[n], true); });
         msg.textContent = X().err;

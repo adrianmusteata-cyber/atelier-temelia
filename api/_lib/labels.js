@@ -12,6 +12,8 @@ const SERVICES = {
   arh_rez: 'Arhitectură + Rezistență',
   arh: 'Doar arhitectură',
   rez: 'Doar rezistență',
+  design: 'Design interior',
+  management: 'Management de proiect',
   nu_stiu: 'Nu știu încă',
 };
 const STATUSES = {

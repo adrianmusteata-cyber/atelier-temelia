@@ -156,7 +156,7 @@
       <div class="wrap">
         <div class="section-head">
           <p class="eyebrow" data-anim="fade" data-i18n="svc.eyebrow">02 — Servicii</p>
-          <h2 class="split-title" data-i18n="svc.title">Două discipline. <em>Un singur acoperiș.</em></h2>
+          <h2 class="split-title" data-i18n="svc.title">Patru servicii. <em>Un singur acoperiș.</em></h2>
         </div>
         <div class="svc-list">
           <article class="svc" data-anim="up">
@@ -166,7 +166,7 @@
               <li data-i18n="svc.a.1">Studii de fezabilitate și concept</li>
               <li data-i18n="svc.a.2">Documentații pentru autorizare — Moldova și România</li>
               <li data-i18n="svc.a.3">Proiect de execuție (PTh) și detalii</li>
-              <li data-i18n="svc.a.4">Design interior și vizualizări 3D</li>
+              <li data-i18n="svc.a.4">Vizualizări 3D ale exteriorului</li>
               <li data-i18n="svc.a.5">Asistență tehnică pe șantier</li>
             </ul>
           </article>
@@ -179,6 +179,28 @@
               <li data-i18n="svc.b.3">Expertize tehnice pentru clădiri existente</li>
               <li data-i18n="svc.b.4">Consolidări, reabilitări și supraetajări</li>
               <li data-i18n="svc.b.5">Optimizarea costurilor de execuție</li>
+            </ul>
+          </article>
+          <article class="svc" data-anim="up">
+            <div class="svc-head"><span class="svc-num">D</span><h3 data-i18n="svc.c.t">Design interior</h3></div>
+            <p data-i18n="svc.c.p">Interioare calde și funcționale, gândite odată cu arhitectura — de la planul de mobilare până la ultimul detaliu.</p>
+            <ul>
+              <li data-i18n="svc.c.1">Concept și plan de amenajare</li>
+              <li data-i18n="svc.c.2">Vizualizări 3D fotorealiste</li>
+              <li data-i18n="svc.c.3">Selecția materialelor, finisajelor și a iluminatului</li>
+              <li data-i18n="svc.c.4">Mobilier la comandă și detalii de execuție</li>
+              <li data-i18n="svc.c.5">Supravegherea implementării</li>
+            </ul>
+          </article>
+          <article class="svc" data-anim="up">
+            <div class="svc-head"><span class="svc-num">M</span><h3 data-i18n="svc.d.t">Management de proiect</h3></div>
+            <p data-i18n="svc.d.p">Coordonăm proiectul în locul tău: termene, buget și echipe, ca să ai un singur interlocutor de la idee până la recepție.</p>
+            <ul>
+              <li data-i18n="svc.d.1">Planificarea etapelor, a bugetului și a termenelor</li>
+              <li data-i18n="svc.d.2">Coordonarea specialiștilor (instalații, rețele, peisagistică)</li>
+              <li data-i18n="svc.d.3">Obținerea avizelor și a autorizației de construire</li>
+              <li data-i18n="svc.d.4">Selecția constructorilor și analiza ofertelor</li>
+              <li data-i18n="svc.d.5">Urmărirea lucrărilor pe șantier, până la recepție</li>
             </ul>
           </article>
         </div>
@@ -358,7 +380,8 @@
           </ul>
         </div>
 
-        <form class="contact-form" id="contactForm" novalidate data-anim="up">
+        <div class="contact-side" data-anim="up">
+        <form class="contact-form" id="contactForm" novalidate>
           <div class="field"><label for="f-name" data-i18n="f.name">Nume</label><input id="f-name" name="name" required autocomplete="name"></div>
           <div class="field"><label for="f-phone" data-i18n="f.phone">Telefon</label><input id="f-phone" name="phone" type="tel" required autocomplete="tel"></div>
           <div class="field full"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required autocomplete="email"></div>
@@ -379,6 +402,8 @@
               <option value="arh_rez" data-i18n="f.s1">Arhitectură + Rezistență</option>
               <option value="arh" data-i18n="f.s2">Doar arhitectură</option>
               <option value="rez" data-i18n="f.s3">Doar rezistență</option>
+              <option value="design" data-i18n="f.s5">Design interior</option>
+              <option value="management" data-i18n="f.s6">Management de proiect</option>
               <option value="nu_stiu" data-i18n="f.s4">Nu știu încă</option>
             </select>
           </div>
@@ -395,6 +420,13 @@
             </div>
           </div>
         </form>
+        <div class="form-done" id="formDone" role="status" tabindex="-1" hidden>
+          <span class="done-mark" aria-hidden="true">✓</span>
+          <h3 data-i18n="f.doneT">Mulțumim! Cererea a fost trimisă.</h3>
+          <p data-i18n="f.doneP">Cererea ta este în procesare. Te contactăm în maximum 48 de ore cu o ofertă.</p>
+          <button type="button" class="btn btn-ghost btn-sm" id="formAgain" data-i18n="f.again">Trimite altă cerere</button>
+        </div>
+        </div>
       </div>
     </section>
   </main>

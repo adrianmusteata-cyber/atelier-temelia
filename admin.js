@@ -7,7 +7,7 @@
 
   const STATUSES = { noua: 'Nouă', in_lucru: 'În lucru', procesat: 'Procesat', avans: 'Avans', incheiat: 'Încheiat', respins: 'Respins', inchisa: 'Închisă' };
   const TYPES = { casa: 'Casă unifamilială', ansamblu: 'Ansamblu rezidențial', birouri: 'Clădire de birouri / comercială', hala: 'Hală / industrial', expertiza: 'Expertiză / consolidare', altceva: 'Altceva' };
-  const SERVICES = { arh_rez: 'Arhitectură + Rezistență', arh: 'Doar arhitectură', rez: 'Doar rezistență', nu_stiu: 'Nu știu încă' };
+  const SERVICES = { arh_rez: 'Arhitectură + Rezistență', arh: 'Doar arhitectură', rez: 'Doar rezistență', design: 'Design interior', management: 'Management de proiect', nu_stiu: 'Nu știu încă' };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = d => new Date(d).toLocaleString('ro-RO', { timeZone: 'Europe/Chisinau', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });

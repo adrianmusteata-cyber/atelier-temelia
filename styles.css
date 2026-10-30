@@ -309,6 +309,15 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
 .form-fallback p { color: var(--err); font-size: .94rem; margin-bottom: 14px; }
 .fallback-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .contact-form .fallback-actions .btn { margin-top: 0; padding: 12px 20px; }
+.contact-form[hidden], .form-done[hidden] { display: none; }
+.form-done {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+  padding: clamp(28px, 5vw, 64px); border-radius: 28px; outline: none;
+  background: linear-gradient(160deg, rgba(233, 184, 114, .14), rgba(239, 232, 220, .03) 60%); border: 1px solid rgba(233, 184, 114, .45);
+}
+.done-mark { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--lux); color: var(--bg); font-size: 1.8rem; font-weight: 700; }
+.form-done h3 { font-size: clamp(2rem, 3.6vw, 3.2rem); line-height: 1.05; }
+.form-done p { color: var(--mute); max-width: 42ch; font-size: 1.05rem; }
 
 /* ==========================================================
    FOOTER + WHATSAPP
