@@ -1,9 +1,14 @@
-/* Recunoașterea documentelor prin Claude: cărți de vizită și chestionare → CRM, avize și chitanțe → cheltuieli.
+/* Recunoașterea documentelor prin Claude: cărți de vizită și chestionare → CRM, avize și chitanțe → cheltuieli,
+   facturi / contracte → scadențe, liste de prețuri → catalog.
    POST /api/admin/docs/upload { files: [{ page, mime, size }] } → { token, uploads: [{ page, url }] }
         — linkuri semnate; browserul urcă fișierele direct în Storage, în tmp/<token>/
    POST /api/admin/docs/read   { token, doc_type? } → { doc_type, supported, fields, duplicates }
-        — Claude stabilește tipul (sau îl primește forțat) și citește câmpurile
+        — Claude stabilește tipul (sau îl primește forțat) și citește câmpurile.
+          La lista de prețuri, fields.rows sunt deja comparate cu catalogul furnizorului (status, match_product_id…).
+          413 too_long / 504 timeout: lista nu încape într-o citire (vezi MAX_TOKENS în _lib/claude.js)
    POST /api/admin/docs/save   { token, doc_type, fields, force? } → { id } sau 409 { duplicates }
+        — lista de prețuri: fields = { supplier: { id } | { name, idno }, list_date, currency, note,
+          rows: [{ include, code, name, unit, price, resolve: '' | 'new' | <product_id> }] } → { id: furnizorul, list_id, summary }
    POST /api/admin/docs/cancel { token } — șterge fișierele temporare
    GET  /api/admin/docs/open?id=<document> → { url } — link de citire valabil 5 minute */
 const crypto = require('crypto');
@@ -16,6 +21,7 @@ const { readDocument } = require('../../_lib/claude');
 const store = require('../../_lib/storage');
 const expenses = require('../../_lib/expenses');
 const dues = require('../../_lib/dues');
+const catalog = require('../../_lib/catalog');
 
 // Tipurile care devin cheltuieli; restul (carte de vizită, chestionar) devin clienți în CRM
 const EXPENSE_TYPES = ['aviz', 'chitanta'];
@@ -27,6 +33,8 @@ const MIME = Object.fromEntries(Object.entries(EXT).map(([m, e]) => [e, m]));
 const MAX_IMAGES = 5;
 const MAX_IMAGE = 15 * 1024 * 1024;
 const MAX_PDF = 10 * 1024 * 1024;
+// Listele de prețuri pot fi PDF-uri mai mari: un PDF între 10 și 20 MB se citește doar ca listă de prețuri
+const MAX_PDF_LIST = 20 * 1024 * 1024;
 const MAX_PDF_PAGES = 20;
 const OCR_PER_HOUR = 30;
 const LIMITS = { name: 100, phone: 30, email: 150, message: 5000, notes: 5000 };
@@ -125,7 +133,7 @@ async function upload(body, res) {
   const files = Array.isArray(body.files) ? body.files : [];
   const pdf = files.some(f => f && f.mime === 'application/pdf');
   const okFile = f => f && EXT[f.mime] && Number.isInteger(f.size) && f.size > 0 &&
-    f.size <= (f.mime === 'application/pdf' ? MAX_PDF : MAX_IMAGE);
+    f.size <= (f.mime === 'application/pdf' ? MAX_PDF_LIST : MAX_IMAGE);
   const pages = files.map(f => f && f.page);
   if (!files.length || files.length > (pdf ? 1 : MAX_IMAGES) || !files.every(okFile) ||
       new Set(pages).size !== files.length || !pages.every(p => Number.isInteger(p) && p >= 1 && p <= MAX_IMAGES)) {
@@ -141,14 +149,20 @@ async function upload(body, res) {
 }
 
 async function read(body, res) {
-  const forced = body.doc_type ? String(body.doc_type) : null;
+  const started = Date.now();
+  let forced = body.doc_type ? String(body.doc_type) : null;
   if (forced && !DOC_TYPES[forced]) return res.status(400).json({ ok: false, error: 'doc_type' });
 
   const files = await tmpFiles(body.token);
   if (!files.length) return res.status(404).json({ ok: false, error: 'nofiles' });
-  if (files.some(f => f.size > (f.mime === 'application/pdf' ? MAX_PDF : MAX_IMAGE))) {
+  if (files.some(f => f.size > (f.mime === 'application/pdf' ? MAX_PDF_LIST : MAX_IMAGE))) {
     await dropTmp(body.token);
     return res.status(400).json({ ok: false, error: 'files' });
+  }
+  // PDF peste 10 MB: acceptat doar ca listă de prețuri (celelalte tipuri păstrează limita din Etapa 1)
+  if (files.some(f => f.mime === 'application/pdf' && f.size > MAX_PDF)) {
+    if (forced && forced !== 'lista_preturi') return res.status(400).json({ ok: false, error: 'files' });
+    forced = 'lista_preturi';
   }
 
   if (await countHits('ocr', 3600e3) >= OCR_PER_HOUR) return res.status(429).json({ ok: false, error: 'rate' });
@@ -161,9 +175,13 @@ async function read(body, res) {
   await addHit('ocr');
   let result;
   try {
-    result = await readDocument(pages, forced);
+    // Funcția are 60 s în total: Claude primește ce rămâne după descărcare, cu 4 s pentru potrivirea cu catalogul
+    result = await readDocument(pages, forced, Math.max(15000, 56000 - (Date.now() - started)));
   } catch (e) {
     console.error('Citirea cu Claude a eșuat:', e.message);
+    // Răspuns tăiat sau prea lent (de obicei o listă de prețuri lungă): utilizatorul încarcă mai puține pagini
+    if (e.code === 'too_long') return res.status(413).json({ ok: false, error: 'too_long' });
+    if (e.code === 'timeout') return res.status(504).json({ ok: false, error: 'timeout' });
     // Detaliul (fără cheie) îl vede doar adminul, ca să se poată afla cauza fără jurnalele Vercel
     return res.status(502).json({ ok: false, error: 'claude', detail: e.message.slice(0, 300) });
   }
@@ -174,6 +192,10 @@ async function read(body, res) {
   }
   if (!DOC_TYPES[result.doc_type].ready) {
     return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: false });
+  }
+  if (result.doc_type === 'lista_preturi') {
+    const fields = await catalog.reviewFields(result.input);
+    return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates: [] });
   }
   if (result.doc_type === 'de_platit') {
     const fields = dues.payableFromClaude(result.input);
@@ -200,6 +222,20 @@ async function read(body, res) {
 async function save(body, res) {
   const docType = String(body.doc_type || '');
   if (!DOC_TYPES[docType] || !DOC_TYPES[docType].ready) return res.status(400).json({ ok: false, error: 'doc_type' });
+
+  // Lista de prețuri: importul atomic în catalog, apoi documentul se leagă de lista creată
+  if (docType === 'lista_preturi') {
+    const r = await catalog.importList(body.fields);
+    if (!r.result) return res.status(r.status).json(r.body);
+    const { supplier_id: id, price_list_id: listId, ...summary } = r.result;
+    try {
+      await attachFiles(body.token, docType, listId, { price_list_id: listId });
+    } catch (e) {
+      console.error('Mutarea fișierelor documentului a eșuat:', e.message);
+      return res.status(201).json({ ok: true, id, kind: 'catalog', list_id: listId, summary, filesError: true });
+    }
+    return res.status(201).json({ ok: true, id, kind: 'catalog', list_id: listId, summary });
+  }
 
   // Scadențe: documentul de plătit sau ratele de încasat
   if (docType === 'de_platit' || docType === 'de_incasat') {

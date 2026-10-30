@@ -352,3 +352,94 @@ body.admin {
   .due-main { grid-template-columns: minmax(0, 1fr) auto; }
   .due-main time { grid-column: 1 / -1; }
 }
+
+/* Catalog (Etapa 4) */
+/* Navigarea din antet are 4 secțiuni: pe telefon fiecare ia cât îi trebuie, ca să nu iasă din ecran */
+@media (max-width: 600px) {
+  .bar-nav { gap: 4px; }
+  .bar-nav .filter { flex: 1 1 auto; min-width: 0; padding: 6px 8px; white-space: nowrap; }
+}
+
+/* Ecranul de verificare al listei de prețuri: dialog lat, tabel pe calculator, carduri pe telefon */
+.doc-dialog.is-wide { width: min(1040px, 100% - 24px); }
+.cat-review { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cat-sup { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); min-width: 0; }
+.cat-sup-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; overflow-wrap: anywhere; }
+.cat-sup .new-grid { margin: 4px 0 0; }
+.cat-sum { font-weight: 600; margin: 0; }
+.cat-filter { margin: 0; }
+.cat-filter button.filter { font: inherit; font-size: .84rem; background: none; border: 0; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.cat-filter button.filter.is-on { background: var(--ink); color: #fff; }
+.cat-head, .cat-row {
+  display: grid; gap: 6px; align-items: start;
+  grid-template-columns: 92px minmax(0, 1fr) minmax(0, 2.6fr) minmax(0, .7fr) minmax(0, 1fr) minmax(0, 2.4fr);
+}
+.cat-head { padding: 0 8px; font-size: .68rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.cat-rows { display: grid; gap: 6px; }
+.cat-row { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; min-width: 0; }
+.cat-row .exp-cell span { display: none; }
+.cat-row.is-uncertain { background: #FBF0DA; border-color: #E5C27A; }
+.cat-row.is-off { opacity: .55; }
+.cat-inc { display: flex; align-items: center; gap: 6px; padding-top: 8px; font-size: .82rem; color: var(--ink-2); cursor: pointer; }
+.cat-inc input { accent-color: var(--clay); width: 18px; height: 18px; flex: none; }
+.cat-state { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding-top: 6px; font-size: .84rem; min-width: 0; overflow-wrap: anywhere; }
+.cat-tag { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .04em; padding: 3px 8px; border-radius: 6px; background: var(--sand); color: var(--ink-2); white-space: nowrap; }
+.cat-tag.is-new { background: #E3EEDF; color: #355A2B; }
+.cat-tag.is-changed { background: #E6E1F0; color: #3F3460; }
+.cat-tag.is-uncertain { background: #F6D9A8; color: #6B4508; }
+.cat-tag.is-gone { background: transparent; box-shadow: inset 0 0 0 1px var(--line); font-weight: 600; color: var(--dim); }
+.cat-up { color: #8A2E1C; }
+.cat-down { color: #2F6B45; }
+.cat-note { color: var(--ink-2); }
+.cat-reason { color: #6B4508; font-weight: 600; }
+.cat-err { color: #8A2E1C; font-weight: 600; }
+.cat-resolve { display: grid; gap: 4px; width: 100%; padding-top: 4px; }
+.cat-resolve label { display: flex; align-items: flex-start; gap: 6px; cursor: pointer; overflow-wrap: anywhere; }
+.cat-resolve input[type="radio"] { accent-color: var(--clay); margin-top: 3px; flex: none; }
+.cat-resolve .link-btn { justify-self: start; }
+.cat-pick { display: grid; gap: 4px; }
+.cat-pick .admin-input { padding: 8px 10px; }
+.cat-pick-list { display: grid; gap: 2px; }
+.cat-pick-list .link-btn { text-align: left; overflow-wrap: anywhere; }
+.cat-add { align-self: flex-start; }
+@media (max-width: 760px) {
+  .cat-head { display: none; }
+  .cat-row { grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 10px; }
+  .cat-row .exp-cell span { display: block; }
+  .cat-inc { grid-column: 1 / -1; padding-top: 0; }
+  .cat-name { grid-column: 1 / -1; }
+  .cat-code, .cat-unit, .cat-price { grid-column: span 2; }
+  .cat-state { grid-column: 1 / -1; padding-top: 2px; }
+}
+
+/* Catalogul: căutare, listă, fișe */
+.cat-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr); gap: 10px; margin-bottom: 10px; }
+.cat-filters .admin-input { width: 100%; min-width: 0; }
+.cat-sup-link { margin: 0 0 8px; }
+.cat-list { display: grid; gap: 8px; margin-bottom: 12px; }
+.cat-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline;
+  padding: 12px 14px; border-radius: 14px; background: #FBF9F5; border: 1px solid var(--line); min-width: 0;
+}
+.cat-item-name { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.cat-item-price { white-space: nowrap; }
+.cat-item-meta { font-size: .86rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.cat-item-meta a { color: var(--clay-d); text-decoration: underline; text-underline-offset: 3px; }
+.cat-item-date { font-size: .82rem; color: var(--ink-2); white-space: nowrap; text-align: right; }
+.cat-price { font-size: 1.3rem; font-weight: 600; margin: 10px 0 14px; }
+.cat-price .muted { font-size: .9rem; font-weight: 400; }
+.cat-edit { margin: 10px 0; padding: 14px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.cat-edit .new-grid { margin: 0 0 10px; }
+.cat-edit .admin-input { width: 100%; min-width: 0; }
+.cat-hist, .cat-lists { display: grid; gap: 4px; margin-bottom: 14px; }
+.cat-hist li, .cat-lists li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 8px 0; border-bottom: 1px dashed var(--line); min-width: 0; }
+.cat-hist time { font-size: .88rem; color: var(--ink-2); min-width: 86px; }
+.cat-hist b { white-space: nowrap; }
+.cat-hist .muted, .cat-lists .muted { overflow-wrap: anywhere; }
+.cat-docs { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.cat-lists .danger { margin-left: auto; }
+.cat-danger { margin-top: 10px; }
+@media (max-width: 700px) {
+  .cat-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cat-filters input[type="search"] { grid-column: 1 / -1; }
+}

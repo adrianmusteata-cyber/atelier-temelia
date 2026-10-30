@@ -6,6 +6,15 @@ const { TYPES, SERVICES, DOC_TYPES, EXPENSE_CATEGORIES } = require('./labels');
 
 const MODEL = () => (process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5').trim();
 const TIMEOUT = 55000; // funcția are cel mult 60 s (vercel.json)
+/* Limita unui răspuns. Fără streaming, limita reală e timpul: în 55 s Claude scrie cam 4–6 mii de tokeni,
+   adică ~150–250 de rânduri dintr-o listă de prețuri (un rând ≈ 25 de tokeni). max_tokens e mai mare,
+   ca un răspuns care încape în timp să nu fie tăiat. O listă mai lungă se oprește fie la max_tokens
+   (stop_reason „max_tokens”), fie la timeout: în ambele cazuri utilizatorul primește „încarcă mai puține
+   pagini odată”, nu o eroare generică (codurile too_long / timeout de mai jos, tratate în docs/read). */
+const MAX_TOKENS = 32000;
+
+// Eroare cu cod, pe care docs/read o transformă într-un mesaj clar
+const coded = (code, message) => Object.assign(new Error(message), { code });
 
 const str = description => ({ type: 'string', description });
 const strList = description => ({ type: 'array', items: { type: 'string' }, description });
@@ -108,7 +117,33 @@ const SCHEMAS = {
       installments: INSTALLMENTS,
     },
   },
-  lista_preturi: { description: 'Listă de prețuri a unui furnizor (produse și prețuri).' },
+  // Listele de prețuri (Etapa 4): rânduri scurte, ca să încapă cât mai multe într-un răspuns
+  lista_preturi: {
+    description: 'Listă de prețuri (ofertă, prețuri curente) a unui furnizor: produse cu prețuri, fără o livrare anume.',
+    properties: {
+      supplier: str('Furnizorul care a emis lista'),
+      supplier_idno: str('Codul fiscal (IDNO) al furnizorului'),
+      list_date: str('Data listei (sau „valabil din”), format YYYY-MM-DD'),
+      currency: str('Moneda prețurilor: MDL, EUR sau alta (cod de 3 litere); lei = MDL'),
+      prices_with_vat: { type: 'boolean', description: 'true DOAR dacă lista are numai prețuri cu TVA (nu are și coloana fără TVA)' },
+      rows: {
+        type: 'array',
+        description: 'TOATE rândurile cu produse, în ordinea din listă (fără titluri de grupă și fără totaluri). ' +
+          'Ca preț ia prețul fără TVA, dacă lista le are pe amândouă. Omite câmpurile goale; „uncertain” doar când e true.',
+        items: {
+          type: 'object',
+          properties: {
+            code: str('Codul / articolul produsului'),
+            name: str('Denumirea'),
+            unit: str('Unitatea de măsură'),
+            price: num('Prețul unitar'),
+            uncertain: { type: 'boolean', description: 'true dacă rândul e citit neclar (cifre șterse, prețul nu se vede)' },
+          },
+          required: ['name'],
+        },
+      },
+    },
+  },
 };
 
 function tools() {
@@ -141,7 +176,8 @@ function system() {
 }
 
 // pages: [{ mime, data: Buffer }]; forced: tipul ales de utilizator (sau null)
-async function readDocument(pages, forced = null) {
+// timeout: cât mai are voie să dureze apelul (docs/read scade timpul deja folosit pentru descărcarea fișierelor)
+async function readDocument(pages, forced = null, timeout = TIMEOUT) {
   const key = (process.env.ANTHROPIC_API_KEY || '').trim();
   if (!key) throw new Error('Lipsește ANTHROPIC_API_KEY');
 
@@ -155,22 +191,30 @@ async function readDocument(pages, forced = null) {
       : 'Ce document e acesta? Apelează unealta potrivită și completează câmpurile.',
   });
 
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: MODEL(),
-      max_tokens: 16000, // avizele pot avea zeci de rânduri
-      system: system(),
-      // Unele modele nu acceptă tool_choice „any”/„tool”: alegerea rămâne „auto”,
-      // iar la tipul ales de utilizator Claude primește doar unealta acelui tip
-      tools: forced ? tools().filter(t => t.name === forced) : tools(),
-      messages: [{ role: 'user', content }],
-    }),
-    signal: AbortSignal.timeout(TIMEOUT),
-  });
-  if (!r.ok) throw new Error(`Claude ${r.status}: ${await r.text()}`);
-  const data = await r.json();
+  let data;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL(),
+        max_tokens: MAX_TOKENS,
+        system: system(),
+        // Unele modele nu acceptă tool_choice „any”/„tool”: alegerea rămâne „auto”,
+        // iar la tipul ales de utilizator Claude primește doar unealta acelui tip
+        tools: forced ? tools().filter(t => t.name === forced) : tools(),
+        messages: [{ role: 'user', content }],
+      }),
+      signal: AbortSignal.timeout(timeout),
+    });
+    if (!r.ok) throw new Error(`Claude ${r.status}: ${await r.text()}`);
+    data = await r.json();
+  } catch (e) {
+    if (e.name === 'TimeoutError' || e.name === 'AbortError') throw coded('timeout', `Claude nu a răspuns în ${Math.round(timeout / 1000)} s`);
+    throw e;
+  }
+  // Răspuns tăiat: unealta e incompletă (lipsesc rândurile de la sfârșit), deci nu se folosește deloc
+  if (data.stop_reason === 'max_tokens') throw coded('too_long', 'Răspunsul lui Claude a fost tăiat (max_tokens)');
   const call = (data.content || []).find(b => b.type === 'tool_use');
   if (!call) throw new Error(`Claude nu a ales nicio unealtă (stop_reason: ${data.stop_reason})`);
   return { doc_type: call.name === 'not_a_document' ? null : call.name, input: call.input || {} };

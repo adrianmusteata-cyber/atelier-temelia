@@ -24,6 +24,7 @@
         <a class="filter" href="/admin" data-sec="crm">CRM</a>
         <a class="filter" href="/admin?fin=list" data-sec="fin">Financiar</a>
         <a class="filter" href="/admin?due=pay" data-sec="dues">Scadențe <span class="nav-count" id="dueCount" hidden></span></a>
+        <a class="filter" href="/admin?cat=list" data-sec="cat">Catalog</a>
       </nav>
       <div class="bar-actions">
         <button class="btn btn-sm btn-clay" id="docBtn" type="button" hidden>Încarcă document</button>
@@ -104,6 +105,11 @@
       <div id="fin"></div>
     </section>
 
+    <!-- Catalog: produse, furnizori, liste de prețuri (admin-cat.js) -->
+    <section id="view-cat" class="admin-view" hidden>
+      <div id="cat"></div>
+    </section>
+
     <!-- Scadențe: De plătit / De încasat (admin-dues.js) -->
     <section id="view-dues" class="admin-view" hidden>
       <div id="dues"></div>
@@ -134,7 +140,7 @@
     <!-- 1. Alegerea fișierelor -->
     <section class="doc-step" data-step="pick">
       <p class="muted">Fotografiați documentul sau alegeți o poză / un PDF. La o carte de vizită puteți adăuga și verso.
-        Până la 5 poze (paginile aceluiași document) sau un singur PDF.</p>
+        Până la 5 poze (paginile aceluiași document) sau un singur PDF (10 MB; o listă de prețuri până la 20 MB).</p>
       <label class="btn btn-sm btn-ghost doc-file">
         <input type="file" id="docFile" accept="image/*,application/pdf" multiple>
         Fotografiază / alege fișier
@@ -191,6 +197,7 @@
 
   <script src="admin-fin.js"></script>
   <script src="admin-dues.js"></script>
+  <script src="admin-cat.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

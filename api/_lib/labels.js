@@ -44,7 +44,7 @@ const DOC_TYPES = {
   chitanta: { label: 'Chitanță / factură achitată', ready: true },
   de_platit: { label: 'Factură / contract de plătit', ready: true },
   de_incasat: { label: 'Factură / contract de încasat', ready: true },
-  lista_preturi: { label: 'Listă de prețuri', ready: false },
+  lista_preturi: { label: 'Listă de prețuri', ready: true },
 };
 
 // Canalul clientului adăugat manual
