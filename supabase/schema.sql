@@ -21,7 +21,9 @@ create table if not exists public.requests (
   status_updated_at timestamptz not null default now(),
   source            text not null default 'site' check (source in ('site', 'manual')),
   channel           text not null default '' check (channel in ('', 'apel', 'intalnire')),  -- doar la „manual”
-  notes             text not null default ''    -- notele interne din CRM
+  notes             text not null default '',   -- notele interne din CRM
+  contract_value    numeric(12, 2) check (contract_value is null or contract_value >= 0),
+  currency          text not null default 'MDL' check (currency in ('MDL', 'EUR'))
 );
 
 create index if not exists requests_created_at_idx on public.requests (created_at desc);
@@ -66,6 +68,19 @@ create trigger requests_status_log
   after insert or update of status on public.requests
   for each row execute function public.log_status_change();
 
+-- Plățile primite de la client, în moneda clientului
+create table if not exists public.payments (
+  id         bigint generated always as identity primary key,
+  request_id uuid not null references public.requests (id) on delete cascade,
+  paid_on    date not null,
+  amount     numeric(12, 2) not null check (amount > 0),
+  note       text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists payments_request_idx on public.payments (request_id, paid_on);
+
+alter table public.payments       enable row level security;
 alter table public.requests       enable row level security;
 alter table public.rate_hits      enable row level security;
 alter table public.status_history enable row level security;

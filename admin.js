@@ -23,6 +23,28 @@
   const srcText = r => (SOURCES[r.source] || r.source) + (r.channel ? ` · ${CHANNELS[r.channel] || r.channel}` : '');
   const srcTag = r => `<span class="src src-${esc(r.source)}">${esc(srcText(r))}</span>`;
   const label = (map, k) => (k ? esc(map[k] || k) : '—');
+
+  // Sume: „12 500”, „3 000,50” (spațiu nedespărțitor la mii, zecimale doar când există)
+  const num = v => {
+    const [i, d] = Number(v).toFixed(2).split('.');
+    return i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (d === '00' ? '' : ',' + d);
+  };
+  const money = (v, cur) => `${num(v)} ${cur}`;
+  const hasContract = r => r.contract_value !== null && r.contract_value !== undefined;
+  const fullyPaid = (r, paid) => hasContract(r) && Number(r.contract_value) > 0 && paid >= Number(r.contract_value);
+  // Pe carte și în listă: „Plătit 5 000 / 12 000 MDL”, „Plătit 5 000 MDL” sau nimic
+  function payText(r) {
+    const paid = Number(r.paid_total || 0);
+    if (hasContract(r)) return `Plătit ${num(paid)} / ${money(r.contract_value, r.currency)}`;
+    return paid > 0 ? `Plătit ${money(paid, r.currency)}` : '';
+  }
+  // „12 500,5” sau „12500.50” → 12500.5; altfel null
+  const parseMoney = s => {
+    const t = String(s).replace(/[\s ]/g, '').replace(',', '.');
+    return /^\d{1,8}(\.\d{1,2})?$/.test(t) ? Number(t) : null;
+  };
+  const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Chisinau' });
+  const fmtPayDay = d => d.split('-').reverse().join('.');
   const digits = p => String(p).replace(/[^\d+]/g, '');
   const options = (map, selected, empty) =>
     (empty ? `<option value="">${esc(empty)}</option>` : '') +
@@ -168,6 +190,7 @@
     return `<article class="card${r.status === 'noua' ? ' is-new' : ''}" draggable="true" data-id="${esc(r.id)}">
       <a class="card-name" href="/admin?id=${esc(r.id)}">${esc(r.name)}</a>
       <span class="card-meta">${esc(r.phone)}</span>
+      ${payText(r) ? `<span class="card-pay${fullyPaid(r, r.paid_total) ? ' is-paid' : ''}">${esc(payText(r))}</span>` : ''}
       <span class="card-foot">${srcTag(r)}<span>${esc(fmtDay(r.created_at))}</span></span>
       <select class="card-move" aria-label="Mută „${esc(r.name)}” în altă etapă">
         <option value="" selected>Mută în…</option>${moves}
@@ -313,7 +336,7 @@
     return `<li><a class="req${r.status === 'noua' ? ' is-new' : ''}" href="/admin?${detailQs(r.id)}">
       <span class="req-name">${esc(r.name)}</span>
       ${badge(r.status)}
-      <span class="req-meta">${esc(fmt(r.created_at))} · ${esc(r.phone)} · ${esc(srcText(r))}${r.type ? ` · ${esc(TYPES[r.type] || r.type)}` : ''}</span>
+      <span class="req-meta">${esc(fmt(r.created_at))} · ${esc(r.phone)} · ${esc(srcText(r))}${r.type ? ` · ${esc(TYPES[r.type] || r.type)}` : ''}${payText(r) ? ` · ${esc(payText(r))}` : ''}</span>
     </a></li>`;
   }
 
@@ -415,7 +438,7 @@
     $('#detail').innerHTML = '<p class="admin-msg">Se încarcă…</p>';
     show('detail');
     try {
-      const { item: r, history: hist } = await api('/api/admin/requests/' + encodeURIComponent(id));
+      const { item: r, history: hist, payments: pays } = await api('/api/admin/requests/' + encodeURIComponent(id));
       if (seq !== loadSeq) return;
       const phone = digits(r.phone);
       $('#detail').innerHTML = `
@@ -451,11 +474,38 @@
                 <span class="status-note" id="notesNote"></span>
               </div>
             </dd>
+            <dt>Plăți</dt>
+            <dd class="pay">
+              <div class="pay-contract">
+                <label class="new-field"><span class="admin-label">Valoare contract</span>
+                  <input class="admin-input" id="payContract" inputmode="decimal" autocomplete="off" placeholder="ex. 12 500" value="${hasContract(r) ? esc(num(r.contract_value)) : ''}"></label>
+                <label class="new-field"><span class="admin-label">Moneda</span>
+                  <select class="admin-input" id="payCurrency">${options({ MDL: 'MDL', EUR: 'EUR' }, r.currency)}</select></label>
+                <button class="btn btn-sm btn-ghost" id="payContractSave" type="button">Salvează</button>
+              </div>
+              <p class="status-note" id="payContractNote"></p>
+              <div class="pay-totals" id="payTotals"></div>
+              <ul class="pay-list" id="payList"></ul>
+              <button class="btn btn-sm" id="payAdd" type="button">+ Adaugă plată</button>
+              <form class="pay-form" id="payForm" hidden novalidate>
+                <div class="pay-fields">
+                  <label class="new-field"><span class="admin-label">Data</span><input class="admin-input" name="paid_on" type="date" required></label>
+                  <label class="new-field"><span class="admin-label">Suma (<span id="payCur">${esc(r.currency)}</span>)</span><input class="admin-input" name="amount" inputmode="decimal" autocomplete="off" required></label>
+                  <label class="new-field pay-note-field"><span class="admin-label">Notă</span><input class="admin-input" name="note" maxlength="200" autocomplete="off" placeholder="numerar, transfer, factura 12…"></label>
+                </div>
+                <div class="reject-actions">
+                  <button class="btn btn-sm" type="submit" id="paySave">Salvează plata</button>
+                  <button class="btn btn-sm btn-ghost" type="button" id="payCancel">Anulează</button>
+                </div>
+                <p class="status-note err" id="payMsg" role="alert"></p>
+              </form>
+            </dd>
             <dt>Istoric etape</dt><dd><ol class="history" id="history">${historyHtml(hist)}</ol></dd>
           </dl>
         </article>`;
-      bindStatus(r);
+      const moveTo = bindStatus(r);
       bindNotes(r);
+      bindPayments(r, pays || [], moveTo);
     } catch (err) {
       if (seq !== loadSeq) return;
       onError(err, e => {
@@ -487,7 +537,7 @@
         const { item, history: hist } = await api('/api/admin/requests/' + encodeURIComponent(r.id), {
           method: 'PATCH', body: JSON.stringify({ status: next, comment }),
         });
-        current = item.status;
+        current = r.status = item.status;
         shown.hidden = !(item.status === 'respins' && item.status_comment);
         shown.textContent = `Motiv: ${item.status_comment || ''}`;
         $('#history').innerHTML = historyHtml(hist);
@@ -499,6 +549,9 @@
         sel.disabled = false;
       }
     });
+
+    // Folosit de propunerile din „Plăți”: aceeași mutare ca din selector, deci intră și în istoric
+    return next => { sel.value = next; sel.dispatchEvent(new Event('change')); };
   }
 
   function bindNotes(r) {
@@ -523,6 +576,156 @@
         btn.disabled = false;
       }
     });
+  }
+
+  /* ---------- Plăți ---------- */
+  function bindPayments(r, list, moveTo) {
+    const form = $('#payForm'), msg = $('#payMsg'), addBtn = $('#payAdd'), saveBtn = $('#paySave');
+    let pays = list;
+    let editing = null; // plata care se modifică; null = plată nouă
+
+    const paidSum = () => Math.round(pays.reduce((s, p) => s + Number(p.amount), 0) * 100) / 100;
+
+    function render() {
+      const paid = paidSum(), cur = r.currency;
+      const rows = [
+        ['Contract', hasContract(r) ? money(r.contract_value, cur) : '—', ''],
+        ['Plătit', money(paid, cur), ''],
+      ];
+      if (hasContract(r)) {
+        const left = Math.round((Number(r.contract_value) - paid) * 100) / 100;
+        rows.push(left >= 0
+          ? ['Rămas', money(left, cur), left === 0 && paid > 0 ? 'is-ok' : '']
+          : ['Plătit în plus', money(-left, cur), 'is-over']);
+      }
+      $('#payTotals').innerHTML = rows.map(([k, v, c]) => `<div class="${c}"><span>${k}</span><b>${esc(v)}</b></div>`).join('');
+      $('#payList').innerHTML = pays.length ? pays.map(p => `<li data-id="${esc(p.id)}">
+          <time>${esc(fmtPayDay(p.paid_on))}</time>
+          <b>${esc(money(p.amount, cur))}</b>
+          ${p.note ? `<span class="pay-note">${esc(p.note)}</span>` : ''}
+          <span class="pay-actions">
+            <button class="link-btn" type="button" data-act="edit">Modifică</button>
+            <button class="link-btn danger" type="button" data-act="del">Șterge</button>
+          </span>
+        </li>`).join('') : '<li class="muted">Nicio plată încă.</li>';
+      $('#payCur').textContent = cur;
+    }
+
+    function openForm(p) {
+      editing = p;
+      form.elements.paid_on.max = today();
+      form.elements.paid_on.value = p ? p.paid_on : today();
+      form.elements.amount.value = p ? num(p.amount) : '';
+      form.elements.note.value = p ? p.note : '';
+      saveBtn.textContent = p ? 'Salvează modificarea' : 'Salvează plata';
+      msg.textContent = '';
+      form.hidden = false; addBtn.hidden = true;
+      form.elements.amount.focus();
+    }
+    function closeForm() {
+      editing = null;
+      form.hidden = true; addBtn.hidden = false;
+    }
+
+    // Plata a fost ștearsă între timp (de ex. din alt tab): reîncărcăm fișa
+    function gone() {
+      alert('Plata nu mai există.');
+      loadDetail(r.id);
+    }
+
+    // Etapa nu se mută singură: doar propunem, după o plată adăugată sau modificată
+    function suggest(first) {
+      if (r.status === 'respins' || r.status === 'inchisa') return;
+      if (fullyPaid(r, paidSum())) {
+        if (r.status !== 'platit' && r.status !== 'incheiat' && confirm('Achitat integral. Muți clientul în „Plătit”?')) moveTo('platit');
+        return;
+      }
+      if (first && ['noua', 'contactata', 'in_lucru', 'procesat'].includes(r.status) &&
+          confirm('Prima plată înregistrată. Muți clientul în „Avans”?')) moveTo('avans');
+    }
+
+    addBtn.addEventListener('click', () => openForm(null));
+    $('#payCancel').addEventListener('click', closeForm);
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const paidOn = form.elements.paid_on.value;
+      const amount = parseMoney(form.elements.amount.value);
+      const note = form.elements.note.value.trim();
+      if (!paidOn) { msg.textContent = 'Alegeți data plății.'; form.elements.paid_on.focus(); return; }
+      if (paidOn > today()) { msg.textContent = 'Data nu poate fi în viitor.'; form.elements.paid_on.focus(); return; }
+      if (!amount) { msg.textContent = 'Introduceți o sumă mai mare ca 0 (cel mult 2 zecimale).'; form.elements.amount.focus(); return; }
+
+      const first = !editing && pays.length === 0;
+      saveBtn.disabled = true; msg.textContent = '';
+      try {
+        const body = JSON.stringify({ request_id: r.id, paid_on: paidOn, amount, note });
+        ({ payments: pays } = editing
+          ? await api('/api/admin/payments?id=' + encodeURIComponent(editing.id), { method: 'PATCH', body })
+          : await api('/api/admin/payments', { method: 'POST', body }));
+        closeForm();
+        render();
+        suggest(first);
+      } catch (err) {
+        onError(err, e2 => {
+          if (e2.status === 404) return gone();
+          msg.textContent = e2.status === 400 ? 'Verificați data și suma.' : 'Nu s-a salvat. Încercați din nou.';
+        });
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    $('#payList').addEventListener('click', async e => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const p = pays.find(x => String(x.id) === btn.closest('li').dataset.id);
+      if (!p) return;
+      if (btn.dataset.act === 'edit') return openForm(p);
+      if (!confirm(`Ștergi plata de ${money(p.amount, r.currency)} din ${fmtPayDay(p.paid_on)}?`)) return;
+      btn.disabled = true;
+      try {
+        ({ payments: pays } = await api('/api/admin/payments?id=' + encodeURIComponent(p.id), { method: 'DELETE' }));
+        if (editing && editing.id === p.id) closeForm();
+        render();
+      } catch (err) {
+        btn.disabled = false;
+        onError(err, e2 => (e2.status === 404 ? gone() : alert('Nu s-a șters plata. Încercați din nou.')));
+      }
+    });
+
+    // Valoarea contractului și moneda
+    const note = $('#payContractNote');
+    $('#payContractSave').addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      const raw = $('#payContract').value.trim();
+      const value = raw === '' ? null : parseMoney(raw);
+      const currency = $('#payCurrency').value;
+      if (raw !== '' && value === null) {
+        note.className = 'status-note err'; note.textContent = 'Valoarea contractului nu e un număr valid.'; $('#payContract').focus(); return;
+      }
+      if (currency !== r.currency && pays.length &&
+          !confirm('Sumele nu se convertesc, se schimbă doar moneda afișată. Continui?')) {
+        $('#payCurrency').value = r.currency; return;
+      }
+      btn.disabled = true;
+      note.className = 'status-note'; note.textContent = 'Se salvează…';
+      try {
+        const { item } = await api('/api/admin/requests/' + encodeURIComponent(r.id), {
+          method: 'PATCH', body: JSON.stringify({ contract_value: value, currency }),
+        });
+        r.contract_value = item.contract_value; r.currency = item.currency;
+        $('#payContract').value = hasContract(r) ? num(r.contract_value) : '';
+        render();
+        note.className = 'status-note ok'; note.textContent = '✓ Salvat';
+      } catch (err) {
+        onError(err, () => { note.className = 'status-note err'; note.textContent = 'Nu s-a salvat. Încercați din nou.'; });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    render();
   }
 
   $('#back').addEventListener('click', e => internal(e, e.currentTarget));

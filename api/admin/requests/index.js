@@ -10,7 +10,7 @@ const { TYPES, SERVICES, STATUSES, CHANNELS } = require('../../_lib/labels');
 
 const PAGE = 50;
 const BOARD_MAX = 1000;
-const FIELDS = 'id,created_at,name,phone,type,service,status,source,channel,status_updated_at';
+const FIELDS = 'id,created_at,name,phone,type,service,status,source,channel,status_updated_at,contract_value,currency,payments(amount)';
 const LIMITS = { name: 100, phone: 30, email: 150, notes: 5000 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -42,10 +42,16 @@ function validateManual(body) {
   return errors.length ? { errors: [...new Set(errors)] } : { data };
 }
 
+// Plățile vin împreună cu clientul; în browser trimitem doar totalul lor
+const withTotals = items => items.map(({ payments, ...r }) => ({
+  ...r,
+  paid_total: Math.round((payments || []).reduce((s, p) => s + Number(p.amount), 0) * 100) / 100,
+}));
+
 async function list(req, res) {
   if (req.query.all) {
     const items = await rest(`requests?select=${FIELDS}&order=created_at.desc&limit=${BOARD_MAX}`);
-    return res.status(200).json({ ok: true, items });
+    return res.status(200).json({ ok: true, items: withTotals(items) });
   }
 
   const status = STATUSES[req.query.status] ? req.query.status : 'toate';
@@ -60,7 +66,7 @@ async function list(req, res) {
   Object.keys(STATUSES).forEach(s => { counts[s] = 0; });
   all.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
   const more = items.length > PAGE;
-  const page = items.slice(0, PAGE);
+  const page = withTotals(items.slice(0, PAGE));
   return res.status(200).json({
     ok: true,
     items: page,
