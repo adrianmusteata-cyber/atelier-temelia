@@ -18,9 +18,11 @@ const SERVICES = {
 };
 const STATUSES = {
   noua: 'Nouă',
+  contactata: 'Contactată',
   in_lucru: 'În lucru',
   procesat: 'Procesat',
   avans: 'Avans',
+  platit: 'Plătit',
   incheiat: 'Încheiat',
   respins: 'Respins',
   inchisa: 'Închisă',

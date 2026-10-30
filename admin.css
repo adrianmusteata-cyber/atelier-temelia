@@ -85,6 +85,8 @@ body.admin {
 .badge.s-inchisa { background: var(--sand); color: var(--ink-2); }
 .badge.s-procesat { background: #DCE6F0; color: #24425E; }
 .badge.s-avans { background: #F3DDB0; color: #6B4A08; }
+.badge.s-contactata { background: #E4DCF0; color: #4A3470; }
+.badge.s-platit { background: #BFE3CF; color: #1E5A3A; }
 .badge.s-incheiat { background: #D7E8CF; color: #2F5222; }
 .badge.s-respins { background: #F2D3CC; color: #8A2E1C; }
 
