@@ -1,6 +1,7 @@
 /* Scadențe. kind=pay — „De plătit” (documente de la furnizori, cu rate); kind=get — „De încasat” (ratele clienților).
    GET    /api/admin/dues?count=1                         → { overdue } — rate restante în ambele liste
    GET    /api/admin/dues?kind=pay&filter=open|overdue|all → ratele, cu datele documentului și totalurile pe monede
+   GET    /api/admin/dues?kind=pay&filter=paid&month=YYYY-MM|all → ratele plătite, după data plății (fila din Financiar)
    GET    /api/admin/dues?kind=pay&id=<id>                → documentul, cu ratele, articolele și fișierele
    POST   /api/admin/dues?kind=pay { ...câmpuri, items[], installments[], force? }
    PATCH  /api/admin/dues?kind=pay&id=<id> { ...câmpuri, items[], installments[] } — ratele plătite rămân neatinse
@@ -45,7 +46,28 @@ const payable = id => rest(`payables?select=*,payable_items(*),payable_installme
     installments: p.payable_installments.map(i => ({ ...i, ...dues.payableState(i) })), payable_installments: undefined,
   });
 
+// Facturile plătite (pentru fila „Facturi plătite” din Financiar), după data plății; month=YYYY-MM sau all
+async function paidList(req, res) {
+  let q = 'payable_installments?select=*,payables(id,supplier,doc_number,doc_date,currency,amount_total,category,documents(id))' +
+    '&paid_on=not.is.null&order=paid_on.desc,id.desc&limit=2000';
+  const m = String(req.query.month || '');
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(m)) {
+    const [y, mo] = m.split('-').map(Number);
+    const next = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
+    q += `&paid_on=gte.${m}-01&paid_on=lt.${next}-01`;
+  }
+  const items = (await rest(q)).map(({ payables: p, ...i }) => ({
+    id: i.id, paid_on: i.paid_on, paid_amount: Number(i.paid_amount), amount: Number(i.amount), due_date: i.due_date, expense_id: i.expense_id,
+    payable_id: p.id, supplier: p.supplier, doc_number: p.doc_number, doc_date: p.doc_date, currency: p.currency,
+    category: p.category, has_doc: (p.documents || []).length > 0,
+  }));
+  const t = {};
+  items.forEach(r => { t[r.currency] = round((t[r.currency] || 0) + r.paid_amount); });
+  return res.status(200).json({ ok: true, items, totals: t });
+}
+
 async function payList(req, res) {
+  if (req.query.filter === 'paid') return paidList(req, res);
   const filter = ['overdue', 'all'].includes(req.query.filter) ? req.query.filter : 'open';
   let q = 'payable_installments?select=*,payables(id,supplier,doc_number,currency,amount_total)&order=due_date.asc,id.asc&limit=2000';
   if (filter !== 'all') q += '&paid_on=is.null';

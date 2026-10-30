@@ -131,6 +131,7 @@ window.LUXFIN = (() => {
     if (what === 'exp' && p.get('eid')) return loadExpense(p.get('eid'));
     if (what === 'new') return showNew();
     if (what === 'report') return p.get('m') ? loadMonth(p.get('m')) : loadReport();
+    if (what === 'paid') return loadPaid(p);
     return loadList(p);
   }
 
@@ -138,6 +139,7 @@ window.LUXFIN = (() => {
       <h1 class="admin-title">Financiar</h1>
       <nav class="view-switch" aria-label="Financiar">
         <a class="filter${active === 'list' ? ' is-on' : ''}" href="/admin?fin=list">Cheltuieli</a>
+        <a class="filter${active === 'paid' ? ' is-on' : ''}" href="/admin?fin=paid">Facturi plătite</a>
         <a class="filter${active === 'report' ? ' is-on' : ''}" href="/admin?fin=report">Raport</a>
       </nav>
     </div>`;
@@ -324,6 +326,42 @@ window.LUXFIN = (() => {
   }
 
   /* ---------- Raport ---------- */
+  /* ---------- Facturi plătite (din Scadențe → De plătit, după data plății) ---------- */
+  async function loadPaid(p) {
+    const s = ++seq;
+    const month = p.get('month') === 'all' ? 'all' : /^\d{4}-\d{2}$/.test(p.get('month') || '') ? p.get('month') : thisMonth();
+    const months = lastMonths(24);
+    if (month !== 'all' && !months.includes(month)) months.push(month);
+    fin().innerHTML = `${tabs('paid')}
+      <form class="fin-filters fin-filters-1" id="paidFilters">
+        <select class="admin-input" name="month" aria-label="Luna plății">
+          ${months.map(m => `<option value="${m}"${m === month ? ' selected' : ''}>${L.esc(monthName(m))}</option>`).join('')}
+          <option value="all"${month === 'all' ? ' selected' : ''}>Toate</option>
+        </select>
+      </form>
+      <p class="muted">Facturile din Scadențe → De plătit marcate „Plătită”, după data plății.</p>
+      <p class="fin-total" id="paidTotal"></p>
+      <p class="admin-msg" id="paidMsg">Se încarcă…</p>
+      <ul class="req-list" id="paidList"></ul>`;
+    document.getElementById('paidFilters').month.addEventListener('change', e => L.go(`fin=paid&month=${e.target.value}`, true));
+    try {
+      const { items, totals } = await L.api(`/api/admin/dues?kind=pay&filter=paid&month=${month}`);
+      if (s !== seq) return;
+      const tot = Object.entries(totals).map(([c, v]) => L.money(v, c)).join(' · ');
+      document.getElementById('paidTotal').textContent = tot ? `Plătit: ${tot}` : '';
+      document.getElementById('paidMsg').textContent = items.length ? '' : 'Nicio factură plătită în această perioadă.';
+      document.getElementById('paidList').innerHTML = items.map(r => `<li><a class="req" href="/admin?due=payd&pid=${L.esc(r.payable_id)}">
+        <span class="req-name">${L.esc(r.supplier)}</span>
+        <b class="fin-sum">${L.esc(L.money(r.paid_amount, r.currency))}</b>
+        <span class="req-meta">Plătită ${L.esc(L.fmtPayDay(r.paid_on))}${r.doc_number ? ` · nr. ${L.esc(r.doc_number)}` : ''} · factura din ${L.esc(L.fmtPayDay(r.doc_date))} · ${L.esc(CATEGORIES[r.category] || r.category)}${r.paid_amount !== r.amount ? ` · rata era ${L.esc(L.money(r.amount, r.currency))}` : ''}${r.has_doc ? ' · 📎 document' : ''}</span>
+      </a></li>`).join('');
+    } catch (err) {
+      if (s !== seq) return;
+      document.getElementById('paidMsg').textContent = '';
+      failed(err, () => loadPaid(p));
+    }
+  }
+
   async function loadReport() {
     const s = ++seq;
     fin().innerHTML = `${tabs('report')}<p class="admin-msg" id="repMsg">Se încarcă…</p><div id="rep"></div>`;

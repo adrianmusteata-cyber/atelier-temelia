@@ -518,3 +518,4 @@ html.is-tg {
   .is-tg .doc-pick .doc-file { flex: 1 1 140px; align-self: stretch; }
   .is-tg .reject-dialog { max-height: calc(100dvh - var(--tg-top) - var(--tg-bottom) - 24px); overflow-y: auto; }
 }
+.fin-filters-1 { grid-template-columns: minmax(0, 280px); }
