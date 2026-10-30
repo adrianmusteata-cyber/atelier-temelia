@@ -33,10 +33,12 @@ function telegramText(d, createdAt = new Date(), adminLink = false) {
   return lines.join('\n');
 }
 
-// Client adăugat manual din panou
+// Client adăugat manual din panou; din Mini App titlul spune și cine l-a adăugat
 function manualClientText(r) {
+  const fromTg = r.source === 'telegram'
+    ? ` din Telegram${r.created_by ? `, de ${esc(r.created_by)}` : ''}` : '';
   const lines = [
-    '<b>📝 Client nou adăugat manual</b>',
+    `<b>📝 Client nou adăugat manual${fromTg}</b>`,
     '',
     `<b>Nume:</b> ${esc(r.name)}`,
     `<b>Telefon:</b> ${esc(r.phone)}`,

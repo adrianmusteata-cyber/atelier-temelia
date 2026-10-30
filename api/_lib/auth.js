@@ -81,17 +81,34 @@ function verifyInitData(raw, token, now = Date.now()) {
 }
 
 // Rolul din initData: proprietar (chiar dacă e și în lista angajaților), angajat sau refuzat.
-// Întoarce { role, id } sau { status, error, tg_id? }
+// Întoarce { role, id, user } sau { status, error, tg_id? }
 function telegramRole(raw, env = process.env, now = Date.now()) {
   const token = appToken(env);
   if (!token) return { status: 500, error: 'tg_config' };
   const { user, error } = verifyInitData(raw, token, now);
   if (error) return { status: 401, error };
   const id = String(user.id);
-  if (idList(env.TG_OWNER_IDS).has(id)) return { role: 'owner', id };
-  if (idList(env.TG_STAFF_IDS).has(id)) return { role: 'staff', id };
+  if (idList(env.TG_OWNER_IDS).has(id)) return { role: 'owner', id, user };
+  if (idList(env.TG_STAFF_IDS).has(id)) return { role: 'staff', id, user };
   // ID-ul e semnat de Telegram, deci e chiar al lui: îl poate trimite proprietarului
   return { status: 403, error: 'tg_denied', tg_id: id };
+}
+
+// Numele din initData verificat: Telegram le semnează, dar tipul și lungimea le controlăm noi
+const clip = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max) : '');
+const tgName = u => ({
+  username: clip(u.username, 32).replace(/[^A-Za-z0-9_]/g, ''),
+  first_name: clip(u.first_name, 64),
+  last_name: clip(u.last_name, 64),
+});
+
+/* Autorul unei acțiuni (client creat, etapă schimbată), pentru coloanele created_by și status_actor:
+   „@username”, iar fără username numele complet din Telegram. Din browser (parola) → '': pe site nu există utilizatori. */
+function actorOf(req) {
+  const u = req && req.tgUser;
+  if (!u) return '';
+  if (u.username) return '@' + u.username;
+  return [u.first_name, u.last_name].filter(Boolean).join(' ') || `ID ${u.id}`;
 }
 
 /* Folosit de toate rutele /api/admin/*. Întoarce rolul ('owner' | 'staff') sau false, după ce a răspuns cu eroarea.
@@ -104,6 +121,7 @@ const VIEW_HEADER = 'x-view-as';
 function requireAdmin(req, res, { staff = false } = {}) {
   res.setHeader('Cache-Control', 'no-store');
   req.viewAs = false;
+  req.tgUser = null; // se completează doar din initData verificat, niciodată din corpul cererii
   const raw = req.headers[TG_HEADER];
   // Fără antet, sau fără token (calea Telegram oprită) dar cu sesiunea cu parola: proprietar
   if ((!raw || !appToken()) && isAuthed(req)) return asRole(req, res, 'owner', staff);
@@ -116,7 +134,8 @@ function requireAdmin(req, res, { staff = false } = {}) {
     res.status(r.status).json({ ok: false, error: r.error, ...(r.tg_id ? { tg_id: r.tg_id } : {}) });
     return false;
   }
-  req.tgUser = { id: r.id, role: r.role };
+  // Utilizatorul Telegram verificat: { id, role, username, first_name, last_name }
+  req.tgUser = { id: r.id, role: r.role, ...tgName(r.user) };
   return asRole(req, res, r.role, staff);
 }
 
@@ -133,4 +152,4 @@ function asRole(req, res, real, staff) {
   return role;
 }
 
-module.exports = { checkPassword, setSession, clearSession, isAuthed, requireAdmin, verifyInitData, telegramRole };
+module.exports = { checkPassword, setSession, clearSession, isAuthed, requireAdmin, verifyInitData, telegramRole, actorOf };

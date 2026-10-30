@@ -34,6 +34,7 @@ const SOURCES = {
   carte_vizita: 'Carte de vizită',
   chestionar: 'Chestionar',
   document: 'Document',
+  telegram: 'Telegram', // client adăugat din Mini App Telegram (proprietar sau angajat)
 };
 
 // Tipurile de documente recunoscute de Claude; `ready` = secțiunea de destinație există deja

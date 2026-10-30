@@ -2,11 +2,13 @@
    PATCH /api/admin/requests/:id { status?, comment?, notes?, contract_value?, currency? }
          — mută clientul în altă etapă (la „respins” motivul e obligatoriu),
            îi salvează notele și/sau valoarea contractului și moneda. Istoricul îl scrie trigger-ul din baza de date.
+         La schimbarea etapei, status_actor = „@username” (sau numele) din initData verificat; din browser ''.
+         Trigger-ul îl copiază în status_history.actor. Notele nu cer autor.
    Angajatul (Mini App Telegram): fișa fără bani (fără valoare, monedă, plăți, rate și documentele ratelor);
    la PATCH doar status, comment și notes — contract_value sau currency → 403, fără nicio salvare. */
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
-const { requireAdmin } = require('../../_lib/auth');
+const { requireAdmin, actorOf } = require('../../_lib/auth');
 const { STATUSES } = require('../../_lib/labels');
 const { CURRENCIES, parseAmount } = require('../../_lib/money');
 const { paymentText, isPayment, sendPayment, notifySafely } = require('../../_lib/notify');
@@ -20,7 +22,7 @@ const paidTotal = id => rest(`payments?select=amount&request_id=eq.${id}`)
   .then(rows => rows.reduce((s, p) => s + Number(p.amount), 0))
   .catch(() => null);
 
-const history = id => rest(`status_history?select=from_status,to_status,comment,at&request_id=eq.${id}&order=at.asc,id.asc`);
+const history = id => rest(`status_history?select=from_status,to_status,comment,actor,at&request_id=eq.${id}&order=at.asc,id.asc`);
 const payments = id => rest(`payments?select=id,paid_on,amount,note&request_id=eq.${id}&order=paid_on.asc,id.asc`);
 // Originalele (carte de vizită, chestionar); dacă tabelul încă lipsește, fișa merge și fără ele
 const documents = id => rest(`documents?select=id,doc_type,page,mime,created_at&request_id=eq.${id}&order=page.asc`).catch(() => []);
@@ -68,7 +70,8 @@ module.exports = async function handler(req, res) {
       const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
       if (!STATUSES[status]) return res.status(400).json({ ok: false, error: 'status' });
       if (status === 'respins' && !comment) return res.status(400).json({ ok: false, error: 'comment' });
-      Object.assign(patch, { status, status_comment: comment, status_updated_at: new Date().toISOString() });
+      // status_actor se scrie mereu (și '' din browser), ca trigger-ul să nu copieze autorul trecerii anterioare
+      Object.assign(patch, { status, status_comment: comment, status_updated_at: new Date().toISOString(), status_actor: actorOf(req) });
     }
     if ('contract_value' in body) {
       // Gol = fără valoare de contract

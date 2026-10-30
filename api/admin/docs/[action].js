@@ -13,11 +13,12 @@
    GET  /api/admin/docs/open?id=<document> → { url } — link de citire valabil 5 minute
    Angajatul (Mini App Telegram): citește și salvează doar cărți de vizită, chestionare, avize și chitanțe.
    Celelalte tipuri → { supported: false, reason: 'owner_only' } la read (fără citire dacă tipul e ales de el)
-   și 403 owner_only la save; duplicatele cheltuielilor vin fără sumă și fără id; open doar pentru documentele clienților. */
+   și 403 owner_only la save; duplicatele cheltuielilor vin fără sumă și fără id; open doar pentru documentele clienților.
+   Din Telegram, clientul creat dintr-un document primește created_by (autorul din initData verificat). */
 const crypto = require('crypto');
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
-const { requireAdmin } = require('../../_lib/auth');
+const { requireAdmin, actorOf } = require('../../_lib/auth');
 const { TYPES, SERVICES, STATUSES, DOC_TYPES } = require('../../_lib/labels');
 const { countHits, addHit } = require('../../_lib/rate');
 const { readDocument } = require('../../_lib/claude');
@@ -233,7 +234,8 @@ async function read(body, res, staff) {
   return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates });
 }
 
-async function save(body, res, staff) {
+// actor = „@username” din initData verificat (sau ''): clienții creați din documente îl primesc în created_by
+async function save(body, res, staff, actor = '') {
   const docType = String(body.doc_type || '');
   if (!DOC_TYPES[docType] || !DOC_TYPES[docType].ready) return res.status(400).json({ ok: false, error: 'doc_type' });
   if (staff && !STAFF_DOC_TYPES.includes(docType)) return res.status(403).json({ ok: false, error: 'owner_only' });
@@ -266,7 +268,7 @@ async function save(body, res, staff) {
       owner = { payable_id: id };
       kind = 'payable';
     } else {
-      const r = await dues.createReceivables(body.fields);
+      const r = await dues.createReceivables(body.fields, actor);
       if (r.errors) return res.status(400).json({ ok: false, error: 'invalid', fields: r.errors });
       if (r.notfound) return res.status(404).json({ ok: false, error: 'notfound' });
       id = r.request_id;
@@ -301,7 +303,8 @@ async function save(body, res, staff) {
   } else {
     const [item] = await rest('requests', {
       method: 'POST',
-      body: { ...data, status: 'noua', source: docType, channel: '' },
+      // Sursa rămâne tipul documentului (carte_vizita, chestionar); autorul doar în created_by
+      body: { ...data, status: 'noua', source: docType, channel: '', created_by: actor, status_actor: actor },
       prefer: 'return=representation',
     });
     id = item.id;
@@ -356,7 +359,7 @@ module.exports = async function handler(req, res) {
     if (!['read', 'save', 'cancel'].includes(action)) return res.status(404).json({ ok: false, error: 'notfound' });
     if (!UUID_RE.test(String(body.token || ''))) return res.status(400).json({ ok: false, error: 'token' });
     if (action === 'read') return await read(body, res, staff);
-    if (action === 'save') return await save(body, res, staff);
+    if (action === 'save') return await save(body, res, staff, actorOf(req));
     await dropTmp(body.token);
     return res.status(200).json({ ok: true });
   } catch (e) {

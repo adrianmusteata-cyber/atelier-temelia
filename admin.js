@@ -36,7 +36,7 @@
   const STATUSES = { noua: 'Nouă', contactata: 'Contactată', in_lucru: 'În lucru', procesat: 'Procesat', avans: 'Avans', platit: 'Plătit', incheiat: 'Încheiat', respins: 'Respins', inchisa: 'Închisă' };
   const TYPES = { casa: 'Casă unifamilială', ansamblu: 'Ansamblu rezidențial', birouri: 'Clădire de birouri / comercială', hala: 'Hală / industrial', expertiza: 'Expertiză / consolidare', altceva: 'Altceva' };
   const SERVICES = { arh_rez: 'Arhitectură + Rezistență', arh: 'Doar arhitectură', rez: 'Doar rezistență', design: 'Design interior', management: 'Management de proiect', nu_stiu: 'Nu știu încă' };
-  const SOURCES = { site: 'Site web', manual: 'Manual', carte_vizita: 'Carte de vizită', chestionar: 'Chestionar', document: 'Document' };
+  const SOURCES = { site: 'Site web', manual: 'Manual', carte_vizita: 'Carte de vizită', chestionar: 'Chestionar', document: 'Document', telegram: 'Telegram' };
   // Tipurile de documente; `ready` = secțiunea lor există (restul vin în etapele următoare)
   const DOC_TYPES = {
     carte_vizita: { label: 'Carte de vizită', ready: true },
@@ -54,10 +54,12 @@
   const fmt = d => new Date(d).toLocaleString('ro-RO', { timeZone: 'Europe/Chisinau', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const fmtDay = d => new Date(d).toLocaleDateString('ro-RO', { timeZone: 'Europe/Chisinau', day: '2-digit', month: '2-digit', year: 'numeric' });
   const badge = s => `<span class="badge s-${esc(s)}">${esc(STATUSES[s] || s)}</span>`;
-  // „Site web” sau „Manual · Apel” / „Manual · Întâlnire”
+  // „Site web” sau „Manual · Apel” / „Manual · Întâlnire” / „Telegram · Apel”
   const srcText = r => (SOURCES[r.source] || r.source) + (r.channel ? ` · ${CHANNELS[r.channel] || r.channel}` : '');
   const srcTag = r => `<span class="src src-${esc(r.source)}">${esc(srcText(r))}</span>`;
   const label = (map, k) => (k ? esc(map[k] || k) : '—');
+  // Autorul din Mini App („@username” sau numele), salvat de server din initData verificat; gol = din browser
+  const byTg = who => (who ? `${esc(who)} (Telegram)` : '');
 
   // Sume: „12 500”, „3 000,50” (spațiu nedespărțitor la mii, zecimale doar când există)
   const num = v => {
@@ -639,7 +641,7 @@
     if (!h.length) return '<li class="muted">Fără înregistrări.</li>';
     return h.map(x => `<li>
       <time>${esc(fmt(x.at))}</time>
-      <span class="history-step">${x.from_status ? `${badge(x.from_status)} <span aria-label="în">→</span> ` : '<span class="muted">Creat în</span> '}${badge(x.to_status)}</span>
+      <span class="history-step">${x.from_status ? `${badge(x.from_status)} <span aria-label="în">→</span> ` : '<span class="muted">Creat în</span> '}${badge(x.to_status)}${x.actor ? `<span class="history-actor">· ${byTg(x.actor)}</span>` : ''}</span>
       ${x.comment ? `<span class="history-note">Motiv: ${esc(x.comment)}</span>` : ''}
     </li>`).join('');
   }
@@ -665,6 +667,7 @@
         <article class="detail-card">
           <h1>${esc(r.name)}</h1>
           <p class="muted">${srcTag(r)} Creat la ${esc(fmt(r.created_at))}${r.source === 'site' ? ` · ${({ en: 'Engleză', ru: 'Rusă' })[r.lang] || 'Română'}` : ''}</p>
+          ${r.created_by ? `<p class="muted detail-author">Adăugat de ${byTg(r.created_by)}</p>` : ''}
           <div class="detail-actions">
             ${phone ? `<a class="btn btn-sm" href="tel:${esc(phone)}">Sună</a>
             <a class="btn btn-sm btn-clay" href="https://wa.me/${esc(phone.replace('+', ''))}" target="_blank" rel="noopener">WhatsApp</a>` : ''}

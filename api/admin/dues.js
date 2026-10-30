@@ -13,7 +13,7 @@
    DELETE /api/admin/dues?kind=get&id=<id> */
 const { rest } = require('../_lib/db');
 const { allow, jsonBody } = require('../_lib/http');
-const { requireAdmin } = require('../_lib/auth');
+const { requireAdmin, actorOf } = require('../_lib/auth');
 const { parseAmount, validDay, validDate, todayChisinau } = require('../_lib/money');
 const dues = require('../_lib/dues');
 const expenses = require('../_lib/expenses');
@@ -137,7 +137,8 @@ async function getList(req, res) {
 
 async function getWrite(req, res, body, id) {
   if (req.method === 'POST') {
-    const r = await dues.createReceivables(body);
+    // Clientul nou creat odată cu ratele primește autorul din Telegram (created_by), ca la docs/save
+    const r = await dues.createReceivables(body, actorOf(req));
     if (r.errors) return res.status(400).json({ ok: false, error: 'invalid', fields: r.errors });
     if (r.notfound) return notfound(res);
     return res.status(201).json({ ok: true, ...r });

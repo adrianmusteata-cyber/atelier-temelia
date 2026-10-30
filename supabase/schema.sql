@@ -20,9 +20,11 @@ create table if not exists public.requests (
   status_comment    text not null default '',   -- motivul, obligatoriu la „respins”
   status_updated_at timestamptz not null default now(),
   source            text not null default 'site'
-                    constraint requests_source_check check (source in ('site', 'manual', 'carte_vizita', 'chestionar', 'document')),
+                    constraint requests_source_check check (source in ('site', 'manual', 'carte_vizita', 'chestionar', 'document', 'telegram')),
   channel           text not null default '' check (channel in ('', 'apel', 'intalnire')),  -- doar la „manual”
   notes             text not null default '',   -- notele interne din CRM
+  created_by        text not null default '',   -- cine l-a creat din Mini App Telegram („@username” sau numele); gol din browser
+  status_actor      text not null default '',   -- cine a schimbat ultima dată etapa (copiat de trigger în status_history.actor)
   contract_value    numeric(12, 2) check (contract_value is null or contract_value >= 0),
   currency          text not null default 'MDL' check (currency in ('MDL', 'EUR')),
   -- Telefonul poate lipsi (carte de vizită doar cu email), dar nu ambele
@@ -48,6 +50,7 @@ create table if not exists public.status_history (
   from_status text,                      -- null = clientul a fost creat direct în această etapă
   to_status   text not null,
   comment     text not null default '',
+  actor       text not null default '',      -- „@username” din Telegram; gol = din browser
   at          timestamptz not null default now()
 );
 
@@ -57,11 +60,11 @@ create or replace function public.log_status_change() returns trigger
 language plpgsql as $$
 begin
   if tg_op = 'INSERT' then
-    insert into public.status_history (request_id, from_status, to_status, comment, at)
-    values (new.id, null, new.status, new.status_comment, new.created_at);
+    insert into public.status_history (request_id, from_status, to_status, comment, actor, at)
+    values (new.id, null, new.status, new.status_comment, new.status_actor, new.created_at);
   elsif new.status is distinct from old.status then
-    insert into public.status_history (request_id, from_status, to_status, comment, at)
-    values (new.id, old.status, new.status, new.status_comment, new.status_updated_at);
+    insert into public.status_history (request_id, from_status, to_status, comment, actor, at)
+    values (new.id, old.status, new.status, new.status_comment, new.status_actor, new.status_updated_at);
   end if;
   return new;
 end $$;
@@ -405,3 +408,14 @@ alter table public.suppliers     enable row level security;
 alter table public.price_lists   enable row level security;
 alter table public.products      enable row level security;
 alter table public.price_history enable row level security;
+
+-- ==========================================================
+-- Mini App Telegram: sursa „telegram” și autorul acțiunilor. Identic cu migrations/2026-10-30-telegram-autor.sql
+-- (pentru o bază creată înainte; pe o bază nouă coloanele și regula există deja din create table de mai sus)
+-- ==========================================================
+alter table public.requests drop constraint if exists requests_source_check;
+alter table public.requests add constraint requests_source_check
+  check (source in ('site', 'manual', 'carte_vizita', 'chestionar', 'document', 'telegram'));
+alter table public.requests add column if not exists created_by   text not null default '';
+alter table public.requests add column if not exists status_actor text not null default '';
+alter table public.status_history add column if not exists actor text not null default '';

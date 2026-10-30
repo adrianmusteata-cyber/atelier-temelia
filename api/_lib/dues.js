@@ -156,8 +156,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /* Rate de încasat noi pentru un client existent (request_id) sau unul nou (new_client: { name, phone, email }).
    Opțional: set_currency (schimbă moneda clientului), set_contract_value (completează valoarea contractului).
+   actor = autorul din Telegram (created_by la clientul nou), '' din browser.
    Întoarce { group_id, request_id } sau { errors } / { notfound: true } */
-async function createReceivables(body) {
+async function createReceivables(body, actor = '') {
   const b = body && typeof body === 'object' ? body : {};
   const errors = [];
   const inst = validateInstallments(b.installments);
@@ -179,7 +180,7 @@ async function createReceivables(body) {
 
   let requestId = str(b.request_id);
   if (client) {
-    const [c] = await rest('requests', { method: 'POST', body: { ...client, status: 'noua', source: 'document', channel: '', currency: b.set_currency || 'MDL' }, prefer: 'return=representation' });
+    const [c] = await rest('requests', { method: 'POST', body: { ...client, status: 'noua', source: 'document', channel: '', currency: b.set_currency || 'MDL', created_by: actor, status_actor: actor }, prefer: 'return=representation' });
     requestId = c.id;
   } else {
     const [c] = await rest(`requests?select=id&id=eq.${requestId}`);

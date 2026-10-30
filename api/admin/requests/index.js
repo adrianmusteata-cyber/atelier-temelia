@@ -5,10 +5,12 @@
         cerut la pornire de Mini App și de browser când „Vezi ca angajat” e pornit.
         Orice GET întoarce și `role` (owner | staff); angajatul primește clienții fără câmpurile cu bani.
    POST /api/admin/requests { name, phone, channel, email?, type?, service?, status?, notes? }
-        — client adăugat manual, cu sursa „manual” și canalul „apel” sau „intalnire”. */
+        — client adăugat manual, cu canalul „apel” sau „intalnire”: sursa „manual” din browser,
+          „telegram” din Mini App, cu created_by = „@username” (sau numele) din initData verificat.
+          Un created_by trimis în corp se ignoră. Cere migrarea 2026-10-30-telegram-autor.sql. */
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
-const { requireAdmin } = require('../../_lib/auth');
+const { requireAdmin, actorOf } = require('../../_lib/auth');
 const { TYPES, SERVICES, STATUSES, CHANNELS } = require('../../_lib/labels');
 const { receivablesWithState } = require('../../_lib/dues');
 const { stripMoney } = require('../../_lib/staff');
@@ -100,7 +102,10 @@ async function list(req, res, role) {
 async function create(req, res, role) {
   const { data, errors } = validateManual(jsonBody(req) || {});
   if (errors) return res.status(400).json({ ok: false, error: 'invalid', fields: errors });
-  const [item] = await rest('requests', { method: 'POST', body: data, prefer: 'return=representation' });
+  // Autorul vine doar din initData verificat; status_actor ajunge în primul rând din istoric (trigger-ul)
+  const actor = actorOf(req);
+  const row = { ...data, source: req.tgUser ? 'telegram' : 'manual', created_by: actor, status_actor: actor };
+  const [item] = await rest('requests', { method: 'POST', body: row, prefer: 'return=representation' });
   // Telegram: clientul nou în chatul principal; dacă e creat direct ca Avans/Plătit, și în „Achitări”
   const jobs = [sendTelegram(manualClientText(item))];
   if (isPayment(item.status)) jobs.push(sendPayment(paymentText(item)));

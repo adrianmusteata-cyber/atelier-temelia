@@ -150,7 +150,10 @@ body.admin {
 .src { display: inline-block; font-size: .7rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
 .src-site { background: #DCE6F0; color: #24425E; }
 .src-manual { background: var(--sand); color: var(--ink-2); }
+.src-telegram { background: #D3EEF7; color: #0F5470; } /* albastrul Telegram, mai viu decât „Site web” */
 .detail-card > .muted .src { margin-right: 6px; vertical-align: 1px; }
+/* „Adăugat de @username (Telegram)” sub data creării */
+.detail-author { margin-top: 2px; overflow-wrap: anywhere; }
 
 /* Client nou */
 .new-form h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); margin-bottom: 6px; }
@@ -165,6 +168,7 @@ body.admin {
 .history li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .history time { font-size: .86rem; color: var(--ink-2); min-width: 140px; }
 .history-step { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.history-actor { font-size: .86rem; color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
 .history-note { flex-basis: 100%; font-size: .9rem; color: #8A2E1C; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* Dialogul pentru motivul respingerii */
