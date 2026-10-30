@@ -14,6 +14,17 @@
   // În browser există doar parola, deci proprietarul; în Telegram rolul vine de la server la pornire
   let role = inTg ? null : 'owner';
   const isStaff = () => role === 'staff';
+  // „Vezi ca angajat”: proprietarul vede panoul exact ca un angajat. Alegerea ține cât fereastra (sessionStorage),
+  // fiecare cerere trimite antetul X-View-As, iar serverul îl ia în seamă doar pentru proprietar (`preview` în ?me=1)
+  const VIEW_KEY = 'luxarch-view-as';
+  function storeViewAs(on) {
+    try {
+      if (on) sessionStorage.setItem(VIEW_KEY, 'staff'); else sessionStorage.removeItem(VIEW_KEY);
+      return true;
+    } catch (e) { return false; } // fereastră privată sau stocare blocată
+  }
+  let viewAsStaff = (() => { try { return sessionStorage.getItem(VIEW_KEY) === 'staff'; } catch (e) { return false; } })();
+  let preview = false;
   // Telegram mai vechi nu are toate metodele: ce lipsește se sare, aplicația merge mai departe
   const tgCall = (method, ...args) => { try { if (inTg && typeof TG[method] === 'function') TG[method](...args); } catch (e) { /* versiune veche */ } };
   const tgAtLeast = v => inTg && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(v);
@@ -83,6 +94,7 @@
     $('#logout').hidden = out || inTg; // în Telegram nu există sesiune cu parolă
     $('#docBtn').hidden = out;
     $('#barNav').hidden = out || role !== 'owner'; // secțiunile cu bani: doar proprietarul
+    $('#previewBand').hidden = out || !preview;
     const sec = ['fin', 'dues', 'cat'].includes(name) ? name : 'crm';
     $('#barNav').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.sec === sec));
     if (name === 'fin') document.title = 'Financiar — LUXARCH';
@@ -101,6 +113,7 @@
     const headers = {};
     if (opts.body) headers['Content-Type'] = 'application/json';
     if (inTg) headers['X-Telegram-Init-Data'] = TG.initData;
+    if (viewAsStaff) headers['X-View-As'] = 'staff'; // doar scade drepturile; la angajat serverul îl ignoră
     const r = await fetch(path, {
       ...opts,
       headers: Object.keys(headers).length ? headers : undefined,
@@ -207,12 +220,17 @@
     $('#docType').innerHTML = types.map(([k, t]) => `<option value="${k}">${esc(t.label)}</option>`).join('');
   }
 
-  // Pornirea: în browser direct la ecranul cerut; în Telegram întâi rolul (o rută permisă ambelor roluri)
+  // Pornirea: în browser direct la ecranul cerut; în Telegram (sau în previzualizare) întâi rolul,
+  // dintr-o rută permisă ambelor roluri
   async function boot() {
-    if (!inTg) return route();
-    tgSetup();
+    if (!inTg && !viewAsStaff) return route();
+    if (inTg) tgSetup();
     try {
-      ({ role } = await api('/api/admin/requests?me=1'));
+      const me = await api('/api/admin/requests?me=1');
+      role = me.role;
+      preview = !!me.preview;
+      // Antetul a fost ignorat (nu ești proprietar): alegerea veche nu mai are rost
+      if (viewAsStaff && !preview) { viewAsStaff = false; storeViewAs(false); }
       applyRole();
       route();
     } catch (err) {
@@ -225,6 +243,17 @@
     }
   }
   $('#tgRetry').addEventListener('click', boot);
+
+  // Comutarea reîncarcă pagina pe pâlnie: pe ecran nu rămân date de proprietar (nici invers).
+  // În Telegram, telegram-web-app.js își reia initData din sessionStorage după reîncărcare.
+  function switchView(on) {
+    if (!storeViewAs(on)) return;
+    location.replace('/admin');
+  }
+  // Fără sessionStorage alegerea nu ar supraviețui reîncărcării: butonul nu apare
+  if (!storeViewAs(viewAsStaff)) $('#viewAsBtn').hidden = true;
+  $('#viewAsBtn').addEventListener('click', () => switchView(true));
+  $('#previewExit').addEventListener('click', () => switchView(false));
 
   /* ---------- Navigare ---------- */
   const params = () => new URLSearchParams(location.search);
@@ -280,7 +309,7 @@
     try {
       await api('/api/admin/login', { method: 'POST', body: JSON.stringify({ password: $('#pw').value }) });
       $('#pw').value = '';
-      route();
+      boot(); // cu previzualizarea pornită, întâi rolul de la server
     } catch (err) {
       msg.textContent = err.status === 429 ? 'Prea multe încercări, reveniți în 15 minute.'
         : err instanceof AuthError ? 'Parolă incorectă.'
@@ -292,6 +321,8 @@
 
   $('#logout').addEventListener('click', async () => {
     await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
+    // Ieșirea oprește și previzualizarea; după o nouă parolă panoul pornește ca proprietar
+    storeViewAs(false); viewAsStaff = false; preview = false; role = 'owner'; applyRole();
     $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = ''; $('#fin').innerHTML = ''; $('#cat').innerHTML = '';
     history.replaceState(null, '', '/admin');
     show('login');

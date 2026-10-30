@@ -1,7 +1,8 @@
 /* GET  /api/admin/requests?status=<status|toate>&cursor=<created_at>
         Lista cererilor, cele mai noi primele, câte 50, plus numărul pe fiecare status.
    GET  /api/admin/requests?all=1 — toți clienții deodată, pentru tabla pâlniei (maximum 1000).
-   GET  /api/admin/requests?me=1 — doar rolul, cerut de Mini App la pornire.
+   GET  /api/admin/requests?me=1 — doar rolul (efectiv) și `preview` (proprietarul care se uită ca angajat),
+        cerut la pornire de Mini App și de browser când „Vezi ca angajat” e pornit.
         Orice GET întoarce și `role` (owner | staff); angajatul primește clienții fără câmpurile cu bani.
    POST /api/admin/requests { name, phone, channel, email?, type?, service?, status?, notes? }
         — client adăugat manual, cu sursa „manual” și canalul „apel” sau „intalnire”. */
@@ -56,7 +57,7 @@ const withTotals = items => items.map(({ payments, ...r }) => ({
 }));
 
 async function list(req, res, role) {
-  if (req.query.me) return res.status(200).json({ ok: true, role });
+  if (req.query.me) return res.status(200).json({ ok: true, role, preview: !!req.viewAs });
   const staff = role === 'staff';
   const fields = staff ? STAFF_FIELDS : FIELDS;
   // Tabla angajatului: fără totaluri plătite și fără „Restant” (ratele de încasat nu se citesc deloc)

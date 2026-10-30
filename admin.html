@@ -27,10 +27,20 @@
         <a class="filter" href="/admin?fin=list" data-sec="fin">Financiar</a>
         <a class="filter" href="/admin?due=pay" data-sec="dues">Scadențe <span class="nav-count" id="dueCount" hidden></span></a>
         <a class="filter" href="/admin?cat=list" data-sec="cat">Catalog</a>
+        <!-- Doar proprietarul: panoul exact cum îl vede un angajat (serverul aplică aceleași limite) -->
+        <button class="link-btn view-as-btn" id="viewAsBtn" type="button">Vezi ca angajat</button>
       </nav>
       <div class="bar-actions">
         <button class="btn btn-sm btn-clay" id="docBtn" type="button" hidden>Încarcă document</button>
         <button class="btn btn-sm btn-ghost" id="logout" hidden>Ieșire</button>
+      </div>
+    </div>
+    <!-- Previzualizarea „Vezi ca angajat”: rămâne vizibilă pe toate ecranele, cu drumul înapoi -->
+    <div class="preview-band" id="previewBand" role="status" hidden>
+      <div class="container preview-band-inner">
+        <span>Previzualizare: vezi ca angajat</span>
+        <span aria-hidden="true">·</span>
+        <button class="link-btn" id="previewExit" type="button">Înapoi la proprietar</button>
       </div>
     </div>
   </header>

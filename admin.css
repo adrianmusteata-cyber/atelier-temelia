@@ -360,6 +360,18 @@ body.admin {
   .bar-nav .filter { flex: 1 1 auto; min-width: 0; padding: 6px 8px; white-space: nowrap; }
 }
 
+/* „Vezi ca angajat” (doar proprietarul, la capătul secțiunilor) și banda previzualizării din antet */
+.view-as-btn, .preview-band .link-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; }
+.view-as-btn { align-self: center; margin-left: 8px; white-space: nowrap; }
+.preview-band { margin-top: 10px; padding: 0; background: #FBF0DA; border-block: 1px solid #E5C27A; color: #6B4508; font-size: .9rem; font-weight: 600; }
+.preview-band-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 8px; text-align: center; }
+.preview-band .link-btn { font-size: inherit; }
+@media (max-width: 600px) {
+  /* Pe telefon secțiunile rămân pe rândul lor, iar butonul trece dedesubt, pe toată lățimea */
+  .bar-nav { flex-wrap: wrap; }
+  .view-as-btn { flex-basis: 100%; margin: 0; }
+}
+
 /* Ecranul de verificare al listei de prețuri: dialog lat, tabel pe calculator, carduri pe telefon */
 .doc-dialog.is-wide { width: min(1040px, 100% - 24px); }
 .cat-review { display: flex; flex-direction: column; gap: 10px; min-width: 0; }

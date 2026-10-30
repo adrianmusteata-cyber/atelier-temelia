@@ -96,12 +96,17 @@ function telegramRole(raw, env = process.env, now = Date.now()) {
 
 /* Folosit de toate rutele /api/admin/*. Întoarce rolul ('owner' | 'staff') sau false, după ce a răspuns cu eroarea.
    Implicit rutele sunt doar pentru proprietar; { staff: true } le deschide și angajaților.
-   Cu antetul Telegram contează doar Telegramul; fără el, cookie-ul cu parola (= proprietar), ca până acum. */
+   Cu antetul Telegram contează doar Telegramul; fără el, cookie-ul cu parola (= proprietar), ca până acum.
+   „Vezi ca angajat”: antetul X-View-As: staff contează doar după ce rolul real verificat e proprietar;
+   atunci cererea e tratată exact ca a unui angajat (req.viewAs = true). Antetul doar scade drepturile, nu le ridică. */
+const VIEW_HEADER = 'x-view-as';
+
 function requireAdmin(req, res, { staff = false } = {}) {
   res.setHeader('Cache-Control', 'no-store');
+  req.viewAs = false;
   const raw = req.headers[TG_HEADER];
   // Fără antet, sau fără token (calea Telegram oprită) dar cu sesiunea cu parola: proprietar
-  if ((!raw || !appToken()) && isAuthed(req)) return 'owner';
+  if ((!raw || !appToken()) && isAuthed(req)) return asRole(req, res, 'owner', staff);
   if (!raw) {
     res.status(401).json({ ok: false, error: 'auth' });
     return false;
@@ -111,12 +116,21 @@ function requireAdmin(req, res, { staff = false } = {}) {
     res.status(r.status).json({ ok: false, error: r.error, ...(r.tg_id ? { tg_id: r.tg_id } : {}) });
     return false;
   }
-  if (r.role === 'staff' && !staff) {
+  req.tgUser = { id: r.id, role: r.role };
+  return asRole(req, res, r.role, staff);
+}
+
+// Rolul efectiv, după rolul real deja verificat: proprietarul cu X-View-As: staff devine angajat
+function asRole(req, res, real, staff) {
+  const viewAs = real === 'owner' && String(req.headers[VIEW_HEADER] || '').trim().toLowerCase() === 'staff';
+  const role = viewAs ? 'staff' : real;
+  req.viewAs = viewAs;
+  if (req.tgUser) req.tgUser.role = role;
+  if (role === 'staff' && !staff) {
     res.status(403).json({ ok: false, error: 'forbidden' });
     return false;
   }
-  req.tgUser = { id: r.id, role: r.role };
-  return r.role;
+  return role;
 }
 
 module.exports = { checkPassword, setSession, clearSession, isAuthed, requireAdmin, verifyInitData, telegramRole };
