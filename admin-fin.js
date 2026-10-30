@@ -272,6 +272,7 @@ window.LUXFIN = (() => {
         ${formHtml(e)}
         <div class="reject-actions">
           <button class="btn" type="submit" id="expSave">Salvează modificările</button>
+          ${e.source === 'de_platit' ? '' : '<button class="btn btn-sm btn-ghost" type="button" id="expToPay">Mută în De plătit</button>'}
           <button class="btn btn-sm btn-ghost danger-btn" type="button" id="expDel">Șterge</button>
         </div>
         <p class="admin-msg" id="expMsg" role="alert"></p>
@@ -292,6 +293,19 @@ window.LUXFIN = (() => {
         L.onError(err, e2 => { msg.textContent = e2.status === 404 ? 'Cheltuiala nu mai există.' : errText(e2, 'Nu s-a salvat. Încearcă din nou.'); });
       } finally {
         btn.disabled = false;
+      }
+    });
+    // Factura e de fapt neplătită: devine document „De plătit” (cu articolele și originalul)
+    document.getElementById('expToPay')?.addEventListener('click', async ev => {
+      const btn = ev.currentTarget;
+      if (!confirm(`Muți ${e.supplier}, ${L.money(e.amount_total, e.currency)} în Scadențe → De plătit?\nCheltuiala dispare din Financiar până marchezi factura plătită. Scadența propusă: data documentului + 30 de zile (o poți schimba).`)) return;
+      btn.disabled = true;
+      try {
+        const { payable_id: pid } = await L.api(`/api/admin/expenses?id=${encodeURIComponent(id)}&action=to_payable`, { method: 'POST', body: '{}' });
+        L.go(`due=payd&pid=${pid}`, true);
+      } catch (err) {
+        btn.disabled = false;
+        L.onError(err, () => { msg.textContent = 'Nu s-a mutat. Încearcă din nou.'; });
       }
     });
     document.getElementById('expDel').addEventListener('click', async ev => {

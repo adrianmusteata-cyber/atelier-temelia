@@ -2,13 +2,15 @@
    GET    /api/admin/expenses?id=<id>                         — o cheltuială, cu articolele și documentele
    POST   /api/admin/expenses { ...câmpuri, items[], force? } — cheltuială adăugată manual
    PATCH  /api/admin/expenses?id=<id> { ...câmpuri, items[] } — modifică (articolele se înlocuiesc toate)
-   DELETE /api/admin/expenses?id=<id>                         — șterge, împreună cu documentele din Storage */
+   DELETE /api/admin/expenses?id=<id>                         — șterge, împreună cu documentele din Storage
+   POST   /api/admin/expenses?id=<id>&action=to_payable       — o mută în Scadențe → De plătit */
 const { rest } = require('../_lib/db');
 const { allow, jsonBody } = require('../_lib/http');
 const { requireAdmin } = require('../_lib/auth');
 const { EXPENSE_CATEGORIES } = require('../_lib/labels');
 const expenses = require('../_lib/expenses');
 const store = require('../_lib/storage');
+const dues = require('../_lib/dues');
 
 const LIST_FIELDS = 'id,doc_date,supplier,doc_number,category,currency,amount_total,source,documents(id)';
 
@@ -43,16 +45,44 @@ async function list(req, res) {
 const one = id => rest(`expenses?select=*,expense_items(*),documents(id,doc_type,page,mime)&id=eq.${id}&expense_items.order=pos.asc&documents.order=page.asc`)
   .then(([e]) => e && { ...e, items: e.expense_items, expense_items: undefined });
 
+/* Cheltuiala salvată greșit ca plătită devine document „De plătit”: aceleași date și articole,
+   o rată cu totalul (scadența propusă: data documentului + 30 de zile), documentele originale se mută.
+   Cheltuielile create din plata unei rate (source de_platit) nu se mută: banii au fost dați. */
+async function toPayable(id, res) {
+  const e = await one(id);
+  if (!e) return res.status(404).json({ ok: false, error: 'notfound' });
+  if (e.source === 'de_platit') return res.status(400).json({ ok: false, error: 'from_payment' });
+  const fields = ['supplier', 'supplier_idno', 'doc_number', 'doc_date', 'currency', 'amount_net', 'vat', 'amount_total', 'category', 'note'];
+  const data = Object.fromEntries(fields.map(k => [k, e[k]]));
+  const items = e.items.map(({ pos, name, code, unit, qty, unit_price, line_total }) => ({ pos, name, code, unit, qty, unit_price, line_total }));
+  const due = new Date(Date.parse(e.doc_date + 'T00:00:00Z') + 30 * 864e5).toISOString().slice(0, 10);
+  const p = await dues.createPayable(data, items, [{ due_date: due, amount: Number(e.amount_total) }]);
+  try {
+    if (e.documents.length) {
+      await rest(`documents?expense_id=eq.${id}`, { method: 'PATCH', body: { expense_id: null, payable_id: p.id, doc_type: 'de_platit' }, prefer: 'return=minimal' });
+    }
+    await rest(`expenses?id=eq.${id}`, { method: 'DELETE' });
+  } catch (err) {
+    // Înapoi la starea de dinainte: documentele rămân la cheltuială, documentul de plătit dispare
+    await rest(`documents?payable_id=eq.${p.id}`, { method: 'PATCH', body: { payable_id: null, expense_id: Number(id), doc_type: e.source === 'manual' ? 'chitanta' : e.source }, prefer: 'return=minimal' }).catch(() => {});
+    await rest(`payables?id=eq.${p.id}`, { method: 'DELETE' }).catch(() => {});
+    throw err;
+  }
+  return res.status(201).json({ ok: true, payable_id: p.id });
+}
+
 module.exports = async function handler(req, res) {
   if (!allow(req, res, ['GET', 'POST', 'PATCH', 'DELETE'])) return;
   if (!requireAdmin(req, res)) return;
   const body = jsonBody(req) || {};
   const id = String(req.query.id || '');
-  if (req.method !== 'POST' && (req.method !== 'GET' || id) && !/^\d{1,18}$/.test(id)) {
+  if ((req.method !== 'POST' || req.query.action) && (req.method !== 'GET' || id) && !/^\d{1,18}$/.test(id)) {
     return res.status(404).json({ ok: false, error: 'notfound' });
   }
 
   try {
+    if (req.method === 'POST' && req.query.action === 'to_payable') return await toPayable(id, res);
+
     if (req.method === 'GET') {
       if (!id) return await list(req, res);
       const item = await one(id);
