@@ -42,8 +42,8 @@ const DOC_TYPES = {
   chestionar: { label: 'Chestionar', ready: true },
   aviz: { label: 'Aviz de expediere', ready: true },
   chitanta: { label: 'Chitanță / factură achitată', ready: true },
-  de_platit: { label: 'Factură / contract de plătit', ready: false },
-  de_incasat: { label: 'Factură / contract de încasat', ready: false },
+  de_platit: { label: 'Factură / contract de plătit', ready: true },
+  de_incasat: { label: 'Factură / contract de încasat', ready: true },
   lista_preturi: { label: 'Listă de prețuri', ready: false },
 };
 

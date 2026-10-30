@@ -7,6 +7,7 @@ const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin } = require('../../_lib/auth');
 const { TYPES, SERVICES, STATUSES, CHANNELS } = require('../../_lib/labels');
+const { receivablesWithState } = require('../../_lib/dues');
 const { manualClientText, paymentText, isPayment, sendTelegram, sendPayment, notifySafely } = require('../../_lib/notify');
 
 const PAGE = 50;
@@ -51,8 +52,13 @@ const withTotals = items => items.map(({ payments, ...r }) => ({
 
 async function list(req, res) {
   if (req.query.all) {
-    const items = await rest(`requests?select=${FIELDS}&order=created_at.desc&limit=${BOARD_MAX}`);
-    return res.status(200).json({ ok: true, items: withTotals(items) });
+    const [items, recs] = await Promise.all([
+      rest(`requests?select=${FIELDS}&order=created_at.desc&limit=${BOARD_MAX}`),
+      receivablesWithState().catch(() => []),
+    ]);
+    // Clienții cu cel puțin o rată de încasat restantă primesc eticheta „Restant” pe tablă
+    const overdue = new Set(recs.filter(r => r.state === 'overdue').map(r => r.request_id));
+    return res.status(200).json({ ok: true, items: withTotals(items).map(r => ({ ...r, overdue: overdue.has(r.id) })) });
   }
 
   const status = STATUSES[req.query.status] ? req.query.status : 'toate';

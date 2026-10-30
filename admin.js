@@ -18,8 +18,8 @@
     chestionar: { label: 'Chestionar', ready: true },
     aviz: { label: 'Aviz de expediere', ready: true },
     chitanta: { label: 'Chitanță / factură achitată', ready: true },
-    de_platit: { label: 'Factură / contract de plătit', ready: false },
-    de_incasat: { label: 'Factură / contract de încasat', ready: false },
+    de_platit: { label: 'Factură / contract de plătit', ready: true },
+    de_incasat: { label: 'Factură / contract de încasat', ready: true },
     lista_preturi: { label: 'Listă de prețuri', ready: false },
   };
   const CHANNELS = { apel: 'Apel', intalnire: 'Întâlnire' };
@@ -60,14 +60,16 @@
     (empty ? `<option value="">${esc(empty)}</option>` : '') +
     Object.entries(map).map(([k, l]) => `<option value="${k}"${k === selected ? ' selected' : ''}>${esc(l)}</option>`).join('');
 
-  const views = { login: $('#view-login'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail'), fin: $('#view-fin') };
+  const views = { login: $('#view-login'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail'), fin: $('#view-fin'), dues: $('#view-dues') };
   function show(name) {
     Object.entries(views).forEach(([k, el]) => { el.hidden = k !== name; });
     $('#logout').hidden = name === 'login';
     $('#docBtn').hidden = name === 'login';
     $('#barNav').hidden = name === 'login';
-    $('#barNav').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.sec === (name === 'fin' ? 'fin' : 'crm')));
+    const sec = name === 'fin' || name === 'dues' ? name : 'crm';
+    $('#barNav').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.sec === sec));
     if (name === 'fin') document.title = 'Financiar — LUXARCH';
+    if (name === 'dues') document.title = 'Scadențe — LUXARCH';
     $('#toolbar').hidden = name !== 'board' && name !== 'list';
     $('#main').classList.toggle('is-wide', name === 'board');
     $('#viewSwitch').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.view === name));
@@ -104,7 +106,9 @@
   }
   function route() {
     const p = params();
+    window.LUXDUES.refreshCount(); // numărul de restanțe din antet, la fiecare navigare
     if (p.get('fin')) { ++loadSeq; window.LUXFIN.route(p); }
+    else if (p.get('due')) { ++loadSeq; window.LUXDUES.route(p); }
     else if (p.get('id')) loadDetail(p.get('id'));
     else if (p.get('new')) showNew();
     else if (p.get('view') === 'list') loadList(true);
@@ -207,6 +211,7 @@
       <a class="card-name" href="/admin?id=${esc(r.id)}">${esc(r.name)}</a>
       <span class="card-meta">${esc(r.phone || r.email)}</span>
       ${payText(r) ? `<span class="card-pay${fullyPaid(r, r.paid_total) ? ' is-paid' : ''}">${esc(payText(r))}</span>` : ''}
+      ${r.overdue ? '<span class="due-tag is-overdue">Restant</span>' : ''}
       <span class="card-foot">${srcTag(r)}<span>${esc(fmtDay(r.created_at))}</span></span>
       <select class="card-move" aria-label="Mută „${esc(r.name)}” în altă etapă">
         <option value="" selected>Mută în…</option>${moves}
@@ -454,7 +459,13 @@
     $('#detail').innerHTML = '<p class="admin-msg">Se încarcă…</p>';
     show('detail');
     try {
-      const { item: r, history: hist, payments: pays, documents: docs = [] } = await api('/api/admin/requests/' + encodeURIComponent(id));
+      const { item: r, history: hist, payments: pays, documents: docs = [], receivables: recs = [] } = await api('/api/admin/requests/' + encodeURIComponent(id));
+      // Ratele de încasat ale clientului, cu starea calculată din plăți
+      const recsHtml = `<p class="admin-label rec-title">Scadențe (de încasat)</p>
+        ${recs.length ? `<ul class="due-list">${recs.map(x => `<li class="due-row is-${esc(x.state)}">
+          <div class="due-main"><time>${esc(fmtPayDay(x.due_date))}</time><span class="due-who">${x.doc_number ? `nr. ${esc(x.doc_number)}` : 'Rată'}</span><b class="due-sum">${esc(money(x.amount, x.currency))}</b></div>
+          <div class="due-meta">${window.LUXDUES.stateTag(x, 'get')}</div></li>`).join('')}</ul>` : '<p class="muted">Nicio scadență.</p>'}
+        <a class="btn btn-sm btn-ghost" href="/admin?due=get&new=1&rid=${esc(r.id)}" data-due-new>+ Adaugă scadență</a>`;
       if (seq !== loadSeq) return;
       const phone = digits(r.phone);
       // „Carte de vizită — pagina 2” / „Chestionar — PDF”
@@ -519,6 +530,7 @@
                 </div>
                 <p class="status-note err" id="payMsg" role="alert"></p>
               </form>
+              ${recsHtml}
             </dd>
             <dt>Istoric etape</dt><dd><ol class="history" id="history">${historyHtml(hist)}</ol></dd>
           </dl>
@@ -755,6 +767,7 @@
   $('#detail').addEventListener('click', e => {
     const btn = e.target.closest('button[data-doc]');
     if (btn) openDoc(btn.dataset.doc);
+    internal(e, e.target.closest('a[data-due-new]'));
   });
   async function openDoc(docId) {
     const w = window.open('', '_blank');
@@ -894,20 +907,27 @@
   }
 
   // Avizele și chitanțele devin cheltuieli (formularul vine din admin-fin.js); restul, clienți în CRM
-  const isExpenseType = t => t === 'aviz' || t === 'chitanta';
+  // Formularele tipurilor care nu merg în CRM: cheltuieli (admin-fin.js) și scadențe (admin-dues.js).
+  // Fiecare are html(câmpuri, extra), bind(element), read(element), check(date) și dupes(listă).
+  const DOC_FORMS = () => {
+    const F = window.LUXFIN, D = window.LUXDUES;
+    const expense = { html: f => F.formHtml(f || { doc_date: today() }), bind: F.bindForm, read: F.readForm, check: F.checkForm, dupes: F.dupesHtml };
+    return { aviz: expense, chitanta: expense, de_platit: D.pay, de_incasat: D.get };
+  };
+  const formOf = t => DOC_FORMS()[t] || null;
 
-  function showReview(type, fields, dupes) {
+  function showReview(type, fields, dupes, extra = {}) {
     $('#docTypePick')?.remove();
     doc.type = type;
     $('#docType').value = type;
-    const expense = isExpenseType(type);
-    $('#docCrmFields').hidden = expense;
-    $('#docExpFields').hidden = !expense;
+    const form = formOf(type);
+    $('#docCrmFields').hidden = !!form;
+    $('#docExpFields').hidden = !form;
     $('#docReviewThumbs').innerHTML = thumbsHtml(true);
     const f = fields || {};
-    if (expense) {
-      $('#docExpFields').innerHTML = window.LUXFIN.formHtml(fields || { doc_date: today() });
-      window.LUXFIN.bindForm($('#docExpFields'));
+    if (form) {
+      $('#docExpFields').innerHTML = form.html(fields, extra);
+      form.bind($('#docExpFields'));
       $('#docHint').textContent = fields && !f.supplier && !f.amount_total ? 'Nu s-au putut citi datele principale. Completează-le manual.' : '';
     } else {
       $('#docExpFields').innerHTML = '';
@@ -923,13 +943,13 @@
 
   function showDupes(list) {
     doc.dupes = list;
-    const box = $('#docDupes'), expense = isExpenseType(doc.type);
+    const box = $('#docDupes'), form = formOf(doc.type);
     box.hidden = !list.length;
-    box.innerHTML = !list.length ? '' : expense ? window.LUXFIN.dupesHtml(list)
+    box.innerHTML = !list.length ? '' : form ? form.dupes(list)
       : `<p><b>Există deja:</b></p><ul>${list.map(d =>
         `<li>${esc(d.name)} (${esc(d.status)}) <button class="link-btn" type="button" data-open="${esc(d.id)}">Deschide clientul existent</button></li>`).join('')}</ul>
       <p class="muted">Dacă e altă persoană, apasă „Creează oricum”.</p>`;
-    $('#docSave').textContent = !list.length ? 'Salvează' : expense ? 'Salvează oricum' : 'Creează oricum';
+    $('#docSave').textContent = !list.length ? 'Salvează' : form ? 'Salvează oricum' : 'Creează oricum';
   }
 
   // Citirea cu Claude; `forced` = tipul ales de utilizator
@@ -952,7 +972,7 @@
         $('#docUnsupported').textContent = `Tip recunoscut: ${DOC_TYPES[res.doc_type].label}. Secțiunea nu e gata încă, nu s-a salvat nimic.`;
         return step('unsupported');
       }
-      showReview(res.doc_type, res.fields, res.duplicates);
+      showReview(res.doc_type, res.fields, res.duplicates, { matches: res.client_matches || [] });
     } catch (err) {
       if (err instanceof AuthError) dlg.close();
       onError(err, e2 => {
@@ -999,11 +1019,11 @@
   docForm.addEventListener('submit', async e => {
     e.preventDefault();
     if (!doc.type) { docMsg.textContent = 'Alegeți tipul documentului.'; $('#docType').focus(); return; }
-    const expense = isExpenseType(doc.type);
+    const form = formOf(doc.type);
     let fields;
-    if (expense) {
-      fields = window.LUXFIN.readForm($('#docExpFields'));
-      const bad = window.LUXFIN.checkForm(fields);
+    if (form) {
+      fields = form.read($('#docExpFields'));
+      const bad = form.check(fields);
       if (bad) { docMsg.textContent = bad; return; }
     } else {
       fields = Object.fromEntries(new FormData(docForm));
@@ -1021,14 +1041,17 @@
       });
       doc.saved = true;
       dlg.close();
-      if (res.filesError) alert(`${res.kind === 'expense' ? 'Cheltuiala' : 'Clientul'} a fost creat${res.kind === 'expense' ? 'ă' : ''}, dar fișierele nu s-au salvat.`);
-      go(res.kind === 'expense' ? `fin=exp&eid=${encodeURIComponent(res.id)}` : `id=${encodeURIComponent(res.id)}`);
+      if (res.filesError) alert('Înregistrarea a fost creată, dar fișierele nu s-au salvat.');
+      window.LUXDUES.resetClients();
+      // Unde ajunge: cheltuiala, documentul de plătit sau fișa clientului (client nou sau rate de încasat)
+      go(res.kind === 'expense' ? `fin=exp&eid=${encodeURIComponent(res.id)}`
+        : res.kind === 'payable' ? `due=payd&pid=${encodeURIComponent(res.id)}` : `id=${encodeURIComponent(res.id)}`);
     } catch (err) {
       if (err instanceof AuthError) dlg.close();
       onError(err, e2 => {
         if (e2.status === 409) { showDupes(e2.data.duplicates || []); return; }
         docMsg.textContent = e2.status === 'storage' ? 'Nu s-a putut încărca fișierul. Încearcă din nou.'
-          : expense ? window.LUXFIN.errText(e2, 'Nu s-a salvat. Încearcă din nou.')
+          : form ? window.LUXFIN.errText(e2, 'Nu s-a salvat. Încearcă din nou.')
             : e2.status === 400 && e2.fields.length ? `Verificați: ${e2.fields.map(f => FIELD_NAMES[f] || f).join(', ')}.`
               : 'Nu s-a salvat. Încearcă din nou.';
       });
@@ -1038,15 +1061,17 @@
   });
 
   $('#docDupes').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-open], a[data-exp]');
+    const btn = e.target.closest('button[data-open], a[data-exp], a[data-href]');
     if (!btn) return;
     e.preventDefault();
     dlg.close();
-    go(btn.dataset.exp ? `fin=exp&eid=${encodeURIComponent(btn.dataset.exp)}` : `id=${encodeURIComponent(btn.dataset.open)}`);
+    go(btn.dataset.href || (btn.dataset.exp ? `fin=exp&eid=${encodeURIComponent(btn.dataset.exp)}` : `id=${encodeURIComponent(btn.dataset.open)}`));
   });
 
   // Ajutoarele comune pentru secțiunea Financiar (admin-fin.js)
-  window.LUXFIN.init({ $, esc, num, money, parseMoney, today, api, onError, go, internal, show, options, fmtDay, fmtPayDay, DOC_TYPES, openDoc });
+  const helpers = { $, esc, num, money, parseMoney, today, api, onError, go, internal, show, options, fmtDay, fmtPayDay, DOC_TYPES, openDoc };
+  window.LUXFIN.init(helpers);
+  window.LUXDUES.init(helpers);
 
   // Închiderea fără salvare: fișierele temporare se șterg
   ['#docClose', '#docCancel', '#docUnsupportedClose'].forEach(s => $(s).addEventListener('click', () => dlg.close()));

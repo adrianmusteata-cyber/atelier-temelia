@@ -319,3 +319,36 @@ body.admin {
   .rep-table th, .rep-table td { padding: 8px; font-size: .84rem; }
 }
 .req .fin-sum { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+
+/* Scadențe */
+.nav-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 4px; border-radius: 10px; background: #B3261E; color: #fff; font-size: .72rem; font-weight: 700; }
+.due-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.due-bar .status-filter { margin: 0; }
+.due-list { display: grid; gap: 8px; margin-bottom: 12px; }
+.due-row { display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; background: #FBF9F5; border: 1px solid var(--line); min-width: 0; }
+.due-row.is-overdue { background: #FBECEA; border-color: #D9897F; box-shadow: inset 4px 0 0 #B3261E; }
+.due-row.is-soon { border-color: #E5A54B; box-shadow: inset 4px 0 0 #D98A1C; }
+.due-row.is-paid { opacity: .75; }
+.due-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
+.due-main time { font-size: .88rem; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.due-who { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.due-sum { white-space: nowrap; }
+.due-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .86rem; }
+.due-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.due-tag { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .04em; padding: 3px 8px; border-radius: 6px; background: var(--sand); color: var(--ink-2); }
+.due-tag.is-overdue { background: #B3261E; color: #fff; }
+.due-tag.is-soon { background: #F6D9A8; color: #6B4508; }
+.due-tag.is-paid { background: #E3F1E8; color: #2F6B45; }
+.card .due-tag { justify-self: start; }
+.due-inline { display: grid; gap: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.due-inst { margin-top: 14px; }
+.due-inst-list { display: grid; gap: 8px; margin-bottom: 10px; }
+.due-inst-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.get-form .new-grid { margin: 12px 0; }
+.get-form > .new-field .admin-input { width: 100%; }
+.get-cur { display: grid; gap: 6px; }
+.rec-title { margin: 18px 0 8px; }
+@media (max-width: 600px) {
+  .due-main { grid-template-columns: minmax(0, 1fr) auto; }
+  .due-main time { grid-column: 1 / -1; }
+}

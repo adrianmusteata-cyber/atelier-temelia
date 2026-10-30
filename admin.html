@@ -23,6 +23,7 @@
       <nav class="bar-nav" id="barNav" aria-label="Secțiuni" hidden>
         <a class="filter" href="/admin" data-sec="crm">CRM</a>
         <a class="filter" href="/admin?fin=list" data-sec="fin">Financiar</a>
+        <a class="filter" href="/admin?due=pay" data-sec="dues">Scadențe <span class="nav-count" id="dueCount" hidden></span></a>
       </nav>
       <div class="bar-actions">
         <button class="btn btn-sm btn-clay" id="docBtn" type="button" hidden>Încarcă document</button>
@@ -101,6 +102,11 @@
     <!-- Financiar: cheltuieli, fișa cheltuielii, raport (admin-fin.js) -->
     <section id="view-fin" class="admin-view" hidden>
       <div id="fin"></div>
+    </section>
+
+    <!-- Scadențe: De plătit / De încasat (admin-dues.js) -->
+    <section id="view-dues" class="admin-view" hidden>
+      <div id="dues"></div>
     </section>
   </main>
 
@@ -184,6 +190,7 @@
   </dialog>
 
   <script src="admin-fin.js"></script>
+  <script src="admin-dues.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

@@ -23,4 +23,14 @@ function validDay(v) {
   return !isNaN(d) && d.toISOString().slice(0, 10) === v && v <= todayChisinau();
 }
 
-module.exports = { CURRENCIES, parseAmount, validDay, todayChisinau };
+// Orice dată reală YYYY-MM-DD (scadențele pot fi și în viitor, și în trecut)
+function validDate(v) {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(v + 'T00:00:00Z');
+  return !isNaN(d) && d.toISOString().slice(0, 10) === v && v >= '2000-01-01' && v <= '2100-12-31';
+}
+
+// Zile între două date YYYY-MM-DD (b − a)
+const daysBetween = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 864e5);
+
+module.exports = { CURRENCIES, parseAmount, validDay, validDate, daysBetween, todayChisinau };

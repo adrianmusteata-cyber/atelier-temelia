@@ -8,6 +8,7 @@ const { requireAdmin } = require('../../_lib/auth');
 const { STATUSES } = require('../../_lib/labels');
 const { CURRENCIES, parseAmount } = require('../../_lib/money');
 const { paymentText, isPayment, sendPayment, notifySafely } = require('../../_lib/notify');
+const { receivablesWithState } = require('../../_lib/dues');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,9 +31,12 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const [[item], hist, pays, docs] = await Promise.all([rest(`requests?select=*&id=eq.${id}`), history(id), payments(id), documents(id)]);
+      const [[item], hist, pays, docs, recs] = await Promise.all([
+        rest(`requests?select=*&id=eq.${id}`), history(id), payments(id), documents(id),
+        receivablesWithState([id]).catch(() => []),
+      ]);
       if (!item) return res.status(404).json({ ok: false, error: 'notfound' });
-      return res.status(200).json({ ok: true, item, history: hist, payments: pays, documents: docs });
+      return res.status(200).json({ ok: true, item, history: hist, payments: pays, documents: docs, receivables: recs });
     }
 
     const body = jsonBody(req) || {};

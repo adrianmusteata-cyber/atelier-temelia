@@ -15,6 +15,7 @@ const { countHits, addHit } = require('../../_lib/rate');
 const { readDocument } = require('../../_lib/claude');
 const store = require('../../_lib/storage');
 const expenses = require('../../_lib/expenses');
+const dues = require('../../_lib/dues');
 
 // Tipurile care devin cheltuieli; restul (carte de vizită, chestionar) devin clienți în CRM
 const EXPENSE_TYPES = ['aviz', 'chitanta'];
@@ -174,6 +175,17 @@ async function read(body, res) {
   if (!DOC_TYPES[result.doc_type].ready) {
     return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: false });
   }
+  if (result.doc_type === 'de_platit') {
+    const fields = dues.payableFromClaude(result.input);
+    const duplicates = fields.supplier && fields.doc_date
+      ? await dues.findPayableDuplicates({ ...fields, amount_total: Number(fields.amount_total) }) : [];
+    return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates });
+  }
+  if (result.doc_type === 'de_incasat') {
+    const fields = dues.receivableFromClaude(result.input);
+    const client_matches = await dues.clientMatches(fields.counterparty);
+    return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates: [], client_matches });
+  }
   if (EXPENSE_TYPES.includes(result.doc_type)) {
     const fields = expenses.fieldsFromClaude(result.input);
     const check = expenses.validate(fields);
@@ -188,6 +200,37 @@ async function read(body, res) {
 async function save(body, res) {
   const docType = String(body.doc_type || '');
   if (!DOC_TYPES[docType] || !DOC_TYPES[docType].ready) return res.status(400).json({ ok: false, error: 'doc_type' });
+
+  // Scadențe: documentul de plătit sau ratele de încasat
+  if (docType === 'de_platit' || docType === 'de_incasat') {
+    let id, owner, kind;
+    if (docType === 'de_platit') {
+      const { data, items, installments, errors } = dues.validatePayable(body.fields);
+      if (errors) return res.status(400).json({ ok: false, error: 'invalid', fields: errors });
+      if (!body.force) {
+        const duplicates = await dues.findPayableDuplicates(data);
+        if (duplicates.length) return res.status(409).json({ ok: false, error: 'duplicate', duplicates });
+      }
+      id = (await dues.createPayable(data, items, installments)).id;
+      owner = { payable_id: id };
+      kind = 'payable';
+    } else {
+      const r = await dues.createReceivables(body.fields);
+      if (r.errors) return res.status(400).json({ ok: false, error: 'invalid', fields: r.errors });
+      if (r.notfound) return res.status(404).json({ ok: false, error: 'notfound' });
+      id = r.request_id;
+      owner = { receivable_group: r.group_id };
+      kind = 'receivable';
+    }
+    try {
+      await attachFiles(body.token, docType, owner.payable_id || owner.receivable_group, owner);
+    } catch (e) {
+      console.error('Mutarea fișierelor documentului a eșuat:', e.message);
+      return res.status(201).json({ ok: true, id, kind, filesError: true });
+    }
+    return res.status(201).json({ ok: true, id, kind });
+  }
+
   const isExpense = EXPENSE_TYPES.includes(docType);
   const lib = isExpense ? expenses : { validate, findDuplicates };
   const { data, items, errors } = lib.validate(body.fields);

@@ -38,6 +38,13 @@ const EXPENSE_PROPS = {
   },
 };
 
+// Ratele / scadențele (Etapa 3)
+const INSTALLMENTS = {
+  type: 'array',
+  description: 'Datele de plată și sumele. O factură are de obicei o singură scadență. Dacă ratele sunt în procente, calculează sumele din total. Dacă o dată nu e fixă („la predare”), lasă due_date gol.',
+  items: { type: 'object', properties: { due_date: str('Data scadenței, YYYY-MM-DD'), amount: num('Suma') } },
+};
+
 // Câmpurile fiecărui tip. Tipurile din etapele 2–4 au deocamdată doar recunoașterea.
 const SCHEMAS = {
   carte_vizita: {
@@ -81,8 +88,26 @@ const SCHEMAS = {
     description: 'Bon fiscal, chitanță sau factură marcată „achitat” (o cheltuială deja plătită).',
     properties: EXPENSE_PROPS,
   },
-  de_platit: { description: 'Factură sau contract emis către noi, cu o dată de plată sau rate, fără semne că e achitat.' },
-  de_incasat: { description: 'Factură sau contract emis de NOI către un client (sumă de încasat).' },
+  de_platit: {
+    description: 'Factură sau contract emis către noi, cu o dată de plată sau rate, fără semne că e achitat.',
+    properties: { ...EXPENSE_PROPS, installments: INSTALLMENTS },
+  },
+  de_incasat: {
+    description: 'Factură sau contract emis de NOI către un client (sumă de încasat).',
+    properties: {
+      counterparty: {
+        type: 'object',
+        description: 'Clientul (cumpărătorul / beneficiarul), nu firma noastră',
+        properties: { name: str('Numele clientului (persoană sau firmă)'), idno: str('Codul fiscal / IDNP'), phone: str('Telefonul'), email: str('Emailul') },
+      },
+      doc_number: str('Numărul documentului'),
+      doc_date: str('Data documentului, format YYYY-MM-DD'),
+      currency: str('Moneda: MDL, EUR sau alta (cod de 3 litere); lei = MDL'),
+      amount_total: num('Totalul de încasat'),
+      is_contract: { type: 'boolean', description: 'true dacă e un contract (nu o factură)' },
+      installments: INSTALLMENTS,
+    },
+  },
   lista_preturi: { description: 'Listă de prețuri a unui furnizor (produse și prețuri).' },
 };
 
