@@ -212,7 +212,6 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
 .broken img { visibility: hidden; }
 .track-end { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 26px; padding: 40px 0; }
 .track-end p { font-family: var(--serif); font-style: italic; font-size: clamp(2.2rem, 4vw, 3.8rem); line-height: 1.05; max-width: 12ch; }
-.credit { margin-top: 40px; font-size: .78rem; color: var(--dim); }
 
 @media (min-width: 1024px) {
   .projects-pin { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 90px 0 30px; }
@@ -224,7 +223,6 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
   .project-media { aspect-ratio: auto; height: 56vh; }
   .project:nth-of-type(even) .project-media { height: 44vh; }
   .track-end { width: 32vw; padding: 0 4vw 60px 2vw; }
-  .credit { margin-top: 26px; }
 }
 
 /* ==========================================================
