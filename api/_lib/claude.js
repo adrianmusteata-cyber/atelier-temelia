@@ -2,14 +2,41 @@
    Variabile: ANTHROPIC_API_KEY, ANTHROPIC_MODEL (opțional), OWN_COMPANY_NAMES, OWN_IDNO (opționale).
    Un singur apel: Claude alege unealta tipului de document (sau not_a_document),
    iar argumentele uneltei sunt câmpurile citite. */
-const { TYPES, SERVICES, DOC_TYPES } = require('./labels');
+const { TYPES, SERVICES, DOC_TYPES, EXPENSE_CATEGORIES } = require('./labels');
 
 const MODEL = () => (process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5').trim();
-const TIMEOUT = 45000;
+const TIMEOUT = 55000; // funcția are cel mult 60 s (vercel.json)
 
 const str = description => ({ type: 'string', description });
 const strList = description => ({ type: 'array', items: { type: 'string' }, description });
 const enumOf = (map, description) => ({ type: 'string', enum: ['', ...Object.keys(map)], description });
+
+const num = description => ({ type: 'number', description });
+
+// Avize și chitanțe → cheltuieli (Etapa 2)
+const EXPENSE_PROPS = {
+  supplier: str('Furnizorul (vânzătorul / emitentul), nu cumpărătorul'),
+  supplier_idno: str('Codul fiscal (IDNO) al furnizorului'),
+  doc_number: str('Numărul documentului (serie și număr)'),
+  doc_date: str('Data documentului, format YYYY-MM-DD'),
+  currency: str('Moneda: MDL, EUR sau alta (cod de 3 litere); lei = MDL'),
+  amount_net: num('Suma fără TVA'),
+  vat: num('TVA-ul (suma), 0 dacă nu există'),
+  amount_total: num('Totalul de plată, cu TVA'),
+  category: { type: 'string', enum: Object.keys(EXPENSE_CATEGORIES), description: `Categoria cheltuielii: ${Object.entries(EXPENSE_CATEGORIES).map(([k, v]) => `${k} = ${v}`).join('; ')}. Dacă nu e clar: altele` },
+  items: {
+    type: 'array',
+    description: 'Rândurile cu articole, în ordinea din document',
+    items: {
+      type: 'object',
+      properties: {
+        name: str('Denumirea'), code: str('Codul articolului'), unit: str('Unitatea de măsură'),
+        qty: num('Cantitatea'), unit_price: num('Prețul unitar (fără TVA, dacă documentul îl are)'), line_total: num('Suma rândului'),
+      },
+      required: ['name'],
+    },
+  },
+};
 
 // Câmpurile fiecărui tip. Tipurile din etapele 2–4 au deocamdată doar recunoașterea.
 const SCHEMAS = {
@@ -46,8 +73,14 @@ const SCHEMAS = {
       },
     },
   },
-  aviz: { description: 'Aviz de expediere sau factură fiscală cu rânduri de marfă livrată către noi.' },
-  chitanta: { description: 'Bon fiscal, chitanță sau factură marcată „achitat” (o cheltuială deja plătită).' },
+  aviz: {
+    description: 'Aviz de expediere sau factură fiscală cu rânduri de marfă livrată către noi.',
+    properties: EXPENSE_PROPS,
+  },
+  chitanta: {
+    description: 'Bon fiscal, chitanță sau factură marcată „achitat” (o cheltuială deja plătită).',
+    properties: EXPENSE_PROPS,
+  },
   de_platit: { description: 'Factură sau contract emis către noi, cu o dată de plată sau rate, fără semne că e achitat.' },
   de_incasat: { description: 'Factură sau contract emis de NOI către un client (sumă de încasat).' },
   lista_preturi: { description: 'Listă de prețuri a unui furnizor (produse și prețuri).' },
@@ -102,7 +135,7 @@ async function readDocument(pages, forced = null) {
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: MODEL(),
-      max_tokens: 4000,
+      max_tokens: 16000, // avizele pot avea zeci de rânduri
       system: system(),
       // Unele modele nu acceptă tool_choice „any”/„tool”: alegerea rămâne „auto”,
       // iar la tipul ales de utilizator Claude primește doar unealta acelui tip

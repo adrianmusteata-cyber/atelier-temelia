@@ -40,8 +40,8 @@ const SOURCES = {
 const DOC_TYPES = {
   carte_vizita: { label: 'Carte de vizită', ready: true },
   chestionar: { label: 'Chestionar', ready: true },
-  aviz: { label: 'Aviz de expediere', ready: false },
-  chitanta: { label: 'Chitanță / factură achitată', ready: false },
+  aviz: { label: 'Aviz de expediere', ready: true },
+  chitanta: { label: 'Chitanță / factură achitată', ready: true },
   de_platit: { label: 'Factură / contract de plătit', ready: false },
   de_incasat: { label: 'Factură / contract de încasat', ready: false },
   lista_preturi: { label: 'Listă de prețuri', ready: false },
@@ -53,4 +53,17 @@ const CHANNELS = {
   intalnire: 'Întâlnire',
 };
 
-module.exports = { TYPES, SERVICES, STATUSES, SOURCES, CHANNELS, DOC_TYPES };
+// Categoriile de cheltuieli (lista fixă; Claude propune una)
+const EXPENSE_CATEGORIES = {
+  materiale: 'Materiale',
+  echipamente: 'Echipamente și IT',
+  software: 'Software și abonamente',
+  transport: 'Transport și combustibil',
+  chirie: 'Chirie și utilități',
+  subcontractori: 'Subcontractori și servicii',
+  birou: 'Birou și consumabile',
+  taxe: 'Taxe și impozite',
+  altele: 'Altele',
+};
+
+module.exports = { TYPES, SERVICES, STATUSES, SOURCES, CHANNELS, DOC_TYPES, EXPENSE_CATEGORIES };

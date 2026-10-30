@@ -247,3 +247,75 @@ body.admin {
   .doc-dialog { padding: 18px 14px; }
 }
 .doc-detail { overflow-wrap: anywhere; font-size: .8rem; }
+
+/* Navigarea CRM | Financiar în antet; pe telefon trece pe al doilea rând */
+.admin-bar-inner { flex-wrap: wrap; row-gap: 10px; }
+.bar-nav { display: flex; gap: 6px; margin-right: auto; margin-left: 8px; }
+.bar-nav .filter { padding: 6px 14px; }
+@media (max-width: 600px) {
+  .bar-nav { order: 3; width: 100%; margin: 0; }
+  .bar-nav .filter { flex: 1; justify-content: center; text-align: center; }
+}
+
+/* Financiar: filtre, listă, totaluri */
+.fin-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 10px; margin-bottom: 14px; }
+.fin-filters .admin-input { width: 100%; min-width: 0; }
+.fin-filters .btn { align-self: center; white-space: nowrap; }
+.fin-total { font-weight: 600; margin: 0 0 6px; }
+.fin-sum { font-weight: 600; white-space: nowrap; }
+@media (max-width: 700px) {
+  .fin-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .fin-filters input[type="search"], .fin-filters .btn { grid-column: 1 / -1; }
+  .fin-filters .btn { justify-self: start; }
+}
+.src-aviz, .src-chitanta { background: #E3EEDF; color: #355A2B; }
+.src-de_platit { background: #FBF0DA; color: #7A5413; }
+.admin-msg.ok { color: #3E5A2A; }
+.danger-btn { color: #8A2E1C; }
+
+/* Formularul de cheltuială și articolele */
+.exp-form { min-width: 0; }
+.exp-items-title { margin: 6px 0 8px; }
+.exp-items { display: grid; gap: 8px; margin-bottom: 10px; counter-reset: row; }
+.exp-item {
+  display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr) auto;
+  gap: 6px; align-items: end; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg);
+}
+.exp-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.exp-cell span { font-size: .68rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.exp-cell .admin-input { width: 100%; min-width: 0; padding: 8px 10px; }
+.exp-del { padding: 8px 4px; text-decoration: none; }
+@media (max-width: 700px) {
+  .exp-item { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .exp-name { grid-column: 1 / 6; }
+  .exp-del { grid-column: 6; grid-row: 1; justify-self: end; }
+  .exp-code, .exp-unit, .exp-qty { grid-column: span 2; }
+  .exp-unit_price, .exp-line_total { grid-column: span 3; }
+}
+.exp-warn { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: #FBF0DA; border: 1px solid #E5C27A; font-size: .9rem; }
+
+/* Raportul */
+.rep-block { margin: 18px 0 26px; }
+.rep-block h2 { font-size: 1.5rem; font-weight: 500; margin-bottom: 10px; }
+.rep-block h2 .muted { font-size: 1rem; font-family: var(--sans, inherit); margin-left: 6px; }
+.rep-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.rep-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.rep-table th, .rep-table td { padding: 10px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.rep-table th:first-child, .rep-table td:first-child { text-align: left; }
+.rep-table thead th { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.rep-table tbody tr { cursor: pointer; }
+.rep-table tbody tr:hover, .rep-table tbody tr:focus { background: var(--bg); outline: none; }
+.rep-table tfoot th { border-bottom: 0; }
+.rep-table .is-neg { color: #8A2E1C; }
+.rep-cats { display: grid; gap: 6px; }
+.rep-cats li {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden;
+}
+.rep-cats a { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.rep-cats b { white-space: nowrap; }
+.rep-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--clay) var(--w), var(--bg) var(--w)); }
+@media (max-width: 600px) {
+  .rep-table th, .rep-table td { padding: 8px; font-size: .84rem; }
+}
+.req .fin-sum { grid-row: 1 / span 2; grid-column: 2; align-self: center; }

@@ -16,8 +16,8 @@
   const DOC_TYPES = {
     carte_vizita: { label: 'Carte de vizită', ready: true },
     chestionar: { label: 'Chestionar', ready: true },
-    aviz: { label: 'Aviz de expediere', ready: false },
-    chitanta: { label: 'Chitanță / factură achitată', ready: false },
+    aviz: { label: 'Aviz de expediere', ready: true },
+    chitanta: { label: 'Chitanță / factură achitată', ready: true },
     de_platit: { label: 'Factură / contract de plătit', ready: false },
     de_incasat: { label: 'Factură / contract de încasat', ready: false },
     lista_preturi: { label: 'Listă de prețuri', ready: false },
@@ -60,11 +60,14 @@
     (empty ? `<option value="">${esc(empty)}</option>` : '') +
     Object.entries(map).map(([k, l]) => `<option value="${k}"${k === selected ? ' selected' : ''}>${esc(l)}</option>`).join('');
 
-  const views = { login: $('#view-login'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail') };
+  const views = { login: $('#view-login'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail'), fin: $('#view-fin') };
   function show(name) {
     Object.entries(views).forEach(([k, el]) => { el.hidden = k !== name; });
     $('#logout').hidden = name === 'login';
     $('#docBtn').hidden = name === 'login';
+    $('#barNav').hidden = name === 'login';
+    $('#barNav').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.sec === (name === 'fin' ? 'fin' : 'crm')));
+    if (name === 'fin') document.title = 'Financiar — LUXARCH';
     $('#toolbar').hidden = name !== 'board' && name !== 'list';
     $('#main').classList.toggle('is-wide', name === 'board');
     $('#viewSwitch').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.view === name));
@@ -86,7 +89,7 @@
   // Orice 401 golește ecranul și cere parola din nou
   function onError(err, fallback) {
     if (err instanceof AuthError) {
-      $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = '';
+      $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = ''; $('#fin').innerHTML = '';
       show('login'); $('#pw').focus();
       return;
     }
@@ -101,7 +104,8 @@
   }
   function route() {
     const p = params();
-    if (p.get('id')) loadDetail(p.get('id'));
+    if (p.get('fin')) { ++loadSeq; window.LUXFIN.route(p); }
+    else if (p.get('id')) loadDetail(p.get('id'));
     else if (p.get('new')) showNew();
     else if (p.get('view') === 'list') loadList(true);
     else loadBoard();
@@ -152,12 +156,13 @@
 
   $('#logout').addEventListener('click', async () => {
     await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
-    $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = '';
+    $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = ''; $('#fin').innerHTML = '';
     history.replaceState(null, '', '/admin');
     show('login');
   });
 
   $('#toolbar').addEventListener('click', e => internal(e, e.target.closest('a[href^="/admin"]')));
+  $('#barNav').addEventListener('click', e => internal(e, e.target.closest('a')));
 
   const setTitle = n => { document.title = `${n ? `(${n}) ` : ''}Clienți — LUXARCH`; };
 
@@ -747,18 +752,20 @@
 
   // Originalul documentului: link semnat, valabil 5 minute, cerut abia la clic.
   // Fereastra se deschide imediat (altfel browserul o blochează), adresa vine după.
-  $('#detail').addEventListener('click', async e => {
+  $('#detail').addEventListener('click', e => {
     const btn = e.target.closest('button[data-doc]');
-    if (!btn) return;
+    if (btn) openDoc(btn.dataset.doc);
+  });
+  async function openDoc(docId) {
     const w = window.open('', '_blank');
     try {
-      const { url } = await api('/api/admin/docs/open?id=' + encodeURIComponent(btn.dataset.doc));
+      const { url } = await api('/api/admin/docs/open?id=' + encodeURIComponent(docId));
       if (w) { w.opener = null; w.location = url; } else location.href = url;
     } catch (err) {
       if (w) w.close();
       onError(err, () => alert('Nu am putut deschide documentul. Încercați din nou.'));
     }
-  });
+  }
 
   /* ---------- Document recunoscut de Claude ---------- */
   const dlg = $('#docDlg'), docForm = $('#docForm'), docMsg = $('#docMsg');
@@ -886,29 +893,43 @@
     Object.entries(fields || {}).forEach(([k, v]) => { if (docForm.elements[k]) docForm.elements[k].value = v || ''; });
   }
 
+  // Avizele și chitanțele devin cheltuieli (formularul vine din admin-fin.js); restul, clienți în CRM
+  const isExpenseType = t => t === 'aviz' || t === 'chitanta';
+
   function showReview(type, fields, dupes) {
     $('#docTypePick')?.remove();
     doc.type = type;
     $('#docType').value = type;
-    $('#docMessageField').hidden = type !== 'chestionar';
+    const expense = isExpenseType(type);
+    $('#docCrmFields').hidden = expense;
+    $('#docExpFields').hidden = !expense;
     $('#docReviewThumbs').innerHTML = thumbsHtml(true);
-    fillForm(fields);
     const f = fields || {};
-    $('#docHint').textContent = !fields ? ''
-      : !f.name && !f.phone && !f.email ? 'Nu s-au putut citi datele principale. Completează-le manual.'
-        : Object.values(f).some(v => String(v).includes('[?]')) ? 'Unele cuvinte nu s-au putut citi — sunt marcate cu [?].' : '';
+    if (expense) {
+      $('#docExpFields').innerHTML = window.LUXFIN.formHtml(fields || { doc_date: today() });
+      window.LUXFIN.bindForm($('#docExpFields'));
+      $('#docHint').textContent = fields && !f.supplier && !f.amount_total ? 'Nu s-au putut citi datele principale. Completează-le manual.' : '';
+    } else {
+      $('#docExpFields').innerHTML = '';
+      $('#docMessageField').hidden = type !== 'chestionar';
+      fillForm(fields);
+      $('#docHint').textContent = !fields ? ''
+        : !f.name && !f.phone && !f.email ? 'Nu s-au putut citi datele principale. Completează-le manual.'
+          : Object.values(f).some(v => String(v).includes('[?]')) ? 'Unele cuvinte nu s-au putut citi — sunt marcate cu [?].' : '';
+    }
     showDupes(dupes || []);
     step('review');
   }
 
   function showDupes(list) {
     doc.dupes = list;
-    const box = $('#docDupes');
+    const box = $('#docDupes'), expense = isExpenseType(doc.type);
     box.hidden = !list.length;
-    box.innerHTML = list.length ? `<p><b>Există deja:</b></p><ul>${list.map(d =>
-      `<li>${esc(d.name)} (${esc(d.status)}) <button class="link-btn" type="button" data-open="${esc(d.id)}">Deschide clientul existent</button></li>`).join('')}</ul>
-      <p class="muted">Dacă e altă persoană, apasă „Creează oricum”.</p>` : '';
-    $('#docSave').textContent = list.length ? 'Creează oricum' : 'Salvează';
+    box.innerHTML = !list.length ? '' : expense ? window.LUXFIN.dupesHtml(list)
+      : `<p><b>Există deja:</b></p><ul>${list.map(d =>
+        `<li>${esc(d.name)} (${esc(d.status)}) <button class="link-btn" type="button" data-open="${esc(d.id)}">Deschide clientul existent</button></li>`).join('')}</ul>
+      <p class="muted">Dacă e altă persoană, apasă „Creează oricum”.</p>`;
+    $('#docSave').textContent = !list.length ? 'Salvează' : expense ? 'Salvează oricum' : 'Creează oricum';
   }
 
   // Citirea cu Claude; `forced` = tipul ales de utilizator
@@ -968,7 +989,7 @@
       $('#docHint').textContent = `„${DOC_TYPES[next].label}”: secțiunea nu e gata încă.`;
       return;
     }
-    if (!doc.files.length) { doc.type = next; $('#docMessageField').hidden = next !== 'chestionar'; return; }
+    if (!doc.files.length) { showReview(next, null, []); return; }
     if (doc.type && !confirm('Schimbi tipul? Câmpurile se citesc din nou.')) { e.target.value = doc.type; return; }
     $('#docTypePick')?.remove();
     step('pick');
@@ -977,11 +998,19 @@
 
   docForm.addEventListener('submit', async e => {
     e.preventDefault();
-    const fields = Object.fromEntries(new FormData(docForm));
     if (!doc.type) { docMsg.textContent = 'Alegeți tipul documentului.'; $('#docType').focus(); return; }
-    if (doc.type !== 'chestionar') fields.message = '';
-    if (!fields.name.trim()) { docMsg.textContent = 'Numele e obligatoriu.'; docForm.elements.name.focus(); return; }
-    if (!fields.phone.trim() && !fields.email.trim()) { docMsg.textContent = 'Completează telefonul sau emailul.'; docForm.elements.phone.focus(); return; }
+    const expense = isExpenseType(doc.type);
+    let fields;
+    if (expense) {
+      fields = window.LUXFIN.readForm($('#docExpFields'));
+      const bad = window.LUXFIN.checkForm(fields);
+      if (bad) { docMsg.textContent = bad; return; }
+    } else {
+      fields = Object.fromEntries(new FormData(docForm));
+      if (doc.type !== 'chestionar') fields.message = '';
+      if (!fields.name.trim()) { docMsg.textContent = 'Numele e obligatoriu.'; docForm.elements.name.focus(); return; }
+      if (!fields.phone.trim() && !fields.email.trim()) { docMsg.textContent = 'Completează telefonul sau emailul.'; docForm.elements.phone.focus(); return; }
+    }
     const btn = $('#docSave');
     btn.disabled = true; docMsg.textContent = '';
     try {
@@ -992,15 +1021,16 @@
       });
       doc.saved = true;
       dlg.close();
-      if (res.filesError) alert('Clientul a fost creat, dar fișierele nu s-au salvat.');
-      go(`id=${encodeURIComponent(res.id)}`);
+      if (res.filesError) alert(`${res.kind === 'expense' ? 'Cheltuiala' : 'Clientul'} a fost creat${res.kind === 'expense' ? 'ă' : ''}, dar fișierele nu s-au salvat.`);
+      go(res.kind === 'expense' ? `fin=exp&eid=${encodeURIComponent(res.id)}` : `id=${encodeURIComponent(res.id)}`);
     } catch (err) {
       if (err instanceof AuthError) dlg.close();
       onError(err, e2 => {
         if (e2.status === 409) { showDupes(e2.data.duplicates || []); return; }
         docMsg.textContent = e2.status === 'storage' ? 'Nu s-a putut încărca fișierul. Încearcă din nou.'
-          : e2.status === 400 && e2.fields.length ? `Verificați: ${e2.fields.map(f => FIELD_NAMES[f] || f).join(', ')}.`
-            : 'Nu s-a salvat. Încearcă din nou.';
+          : expense ? window.LUXFIN.errText(e2, 'Nu s-a salvat. Încearcă din nou.')
+            : e2.status === 400 && e2.fields.length ? `Verificați: ${e2.fields.map(f => FIELD_NAMES[f] || f).join(', ')}.`
+              : 'Nu s-a salvat. Încearcă din nou.';
       });
     } finally {
       btn.disabled = false;
@@ -1008,11 +1038,15 @@
   });
 
   $('#docDupes').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-open]');
+    const btn = e.target.closest('button[data-open], a[data-exp]');
     if (!btn) return;
+    e.preventDefault();
     dlg.close();
-    go(`id=${encodeURIComponent(btn.dataset.open)}`);
+    go(btn.dataset.exp ? `fin=exp&eid=${encodeURIComponent(btn.dataset.exp)}` : `id=${encodeURIComponent(btn.dataset.open)}`);
   });
+
+  // Ajutoarele comune pentru secțiunea Financiar (admin-fin.js)
+  window.LUXFIN.init({ $, esc, num, money, parseMoney, today, api, onError, go, internal, show, options, fmtDay, fmtPayDay, DOC_TYPES, openDoc });
 
   // Închiderea fără salvare: fișierele temporare se șterg
   ['#docClose', '#docCancel', '#docUnsupportedClose'].forEach(s => $(s).addEventListener('click', () => dlg.close()));

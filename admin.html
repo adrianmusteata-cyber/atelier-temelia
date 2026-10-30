@@ -20,6 +20,10 @@
         <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 27 V16 a9 9 0 0 1 18 0 V27" /><path d="M3 27 H29" /><circle cx="16" cy="17" r="2.6" /></svg>
         <span>CRM <em>LUXARCH</em></span>
       </a>
+      <nav class="bar-nav" id="barNav" aria-label="Secțiuni" hidden>
+        <a class="filter" href="/admin" data-sec="crm">CRM</a>
+        <a class="filter" href="/admin?fin=list" data-sec="fin">Financiar</a>
+      </nav>
       <div class="bar-actions">
         <button class="btn btn-sm btn-clay" id="docBtn" type="button" hidden>Încarcă document</button>
         <button class="btn btn-sm btn-ghost" id="logout" hidden>Ieșire</button>
@@ -93,6 +97,11 @@
       <a class="back" id="back" href="/admin">← Înapoi</a>
       <div id="detail"></div>
     </section>
+
+    <!-- Financiar: cheltuieli, fișa cheltuielii, raport (admin-fin.js) -->
+    <section id="view-fin" class="admin-view" hidden>
+      <div id="fin"></div>
+    </section>
   </main>
 
   <!-- Motivul respingerii: cerut la orice mutare în „Respins” -->
@@ -155,7 +164,8 @@
       <ul class="doc-thumbs is-small" id="docReviewThumbs"></ul>
       <p class="status-note err" id="docHint"></p>
       <div class="doc-dupes" id="docDupes" hidden></div>
-      <div class="new-grid">
+      <div id="docExpFields" hidden></div>
+      <div class="new-grid" id="docCrmFields">
         <label class="new-field"><span class="admin-label">Nume *</span><input class="admin-input" name="name" maxlength="100" autocomplete="off"></label>
         <label class="new-field"><span class="admin-label">Telefon</span><input class="admin-input" name="phone" type="tel" maxlength="30" autocomplete="off"></label>
         <label class="new-field new-field-wide"><span class="admin-label">Email</span><input class="admin-input" name="email" type="email" maxlength="150" autocomplete="off"></label>
@@ -173,6 +183,7 @@
     <p class="admin-msg" id="docMsg" role="alert"></p>
   </dialog>
 
+  <script src="admin-fin.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

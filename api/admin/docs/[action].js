@@ -1,4 +1,4 @@
-/* Recunoașterea documentelor prin Claude (Etapa 1: cărți de vizită și chestionare → CRM).
+/* Recunoașterea documentelor prin Claude: cărți de vizită și chestionare → CRM, avize și chitanțe → cheltuieli.
    POST /api/admin/docs/upload { files: [{ page, mime, size }] } → { token, uploads: [{ page, url }] }
         — linkuri semnate; browserul urcă fișierele direct în Storage, în tmp/<token>/
    POST /api/admin/docs/read   { token, doc_type? } → { doc_type, supported, fields, duplicates }
@@ -14,6 +14,10 @@ const { TYPES, SERVICES, STATUSES, DOC_TYPES } = require('../../_lib/labels');
 const { countHits, addHit } = require('../../_lib/rate');
 const { readDocument } = require('../../_lib/claude');
 const store = require('../../_lib/storage');
+const expenses = require('../../_lib/expenses');
+
+// Tipurile care devin cheltuieli; restul (carte de vizită, chestionar) devin clienți în CRM
+const EXPENSE_TYPES = ['aviz', 'chitanta'];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -170,6 +174,12 @@ async function read(body, res) {
   if (!DOC_TYPES[result.doc_type].ready) {
     return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: false });
   }
+  if (EXPENSE_TYPES.includes(result.doc_type)) {
+    const fields = expenses.fieldsFromClaude(result.input);
+    const check = expenses.validate(fields);
+    const duplicates = check.data ? await expenses.findDuplicates(check.data) : [];
+    return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates });
+  }
   const fields = toFields(result.doc_type, result.input);
   const duplicates = await findDuplicates(fields);
   return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates });
@@ -178,37 +188,52 @@ async function read(body, res) {
 async function save(body, res) {
   const docType = String(body.doc_type || '');
   if (!DOC_TYPES[docType] || !DOC_TYPES[docType].ready) return res.status(400).json({ ok: false, error: 'doc_type' });
-  const { data, errors } = validate(body.fields);
+  const isExpense = EXPENSE_TYPES.includes(docType);
+  const lib = isExpense ? expenses : { validate, findDuplicates };
+  const { data, items, errors } = lib.validate(body.fields);
   if (errors) return res.status(400).json({ ok: false, error: 'invalid', fields: errors });
 
   if (!body.force) {
-    const duplicates = await findDuplicates(data);
+    const duplicates = await lib.findDuplicates(data);
     if (duplicates.length) return res.status(409).json({ ok: false, error: 'duplicate', duplicates });
   }
 
-  const [item] = await rest('requests', {
-    method: 'POST',
-    body: { ...data, status: 'noua', source: docType, channel: '' },
-    prefer: 'return=representation',
-  });
+  let id, owner;
+  if (isExpense) {
+    id = (await expenses.createExpense(data, items, docType)).id;
+    owner = { expense_id: id };
+  } else {
+    const [item] = await rest('requests', {
+      method: 'POST',
+      body: { ...data, status: 'noua', source: docType, channel: '' },
+      prefer: 'return=representation',
+    });
+    id = item.id;
+    owner = { request_id: id };
+  }
 
-  // Întâi clientul, apoi fișierele: dacă pasul cu fișierele eșuează, clientul rămâne
+  // Întâi înregistrarea, apoi fișierele: dacă pasul cu fișierele eșuează, înregistrarea rămâne
   try {
-    const files = await tmpFiles(body.token);
-    for (const f of files) {
-      const path = `${docType}/${item.id}/${f.name}`;
-      await store.move(`${tmpDir(body.token)}/${f.name}`, path);
-      await rest('documents', {
-        method: 'POST',
-        body: { doc_type: docType, request_id: item.id, page: f.page, path, mime: f.mime, size_bytes: f.size },
-        prefer: 'return=minimal',
-      });
-    }
+    await attachFiles(body.token, docType, id, owner);
   } catch (e) {
     console.error('Mutarea fișierelor documentului a eșuat:', e.message);
-    return res.status(201).json({ ok: true, id: item.id, filesError: true });
+    return res.status(201).json({ ok: true, id, kind: isExpense ? 'expense' : 'client', filesError: true });
   }
-  return res.status(201).json({ ok: true, id: item.id });
+  return res.status(201).json({ ok: true, id, kind: isExpense ? 'expense' : 'client' });
+}
+
+// Mută fișierele din tmp/<token>/ în <tip>/<id>/ și le leagă de înregistrare
+async function attachFiles(token, docType, id, owner) {
+  const files = await tmpFiles(token);
+  for (const f of files) {
+    const path = `${docType}/${id}/${f.name}`;
+    await store.move(`${tmpDir(token)}/${f.name}`, path);
+    await rest('documents', {
+      method: 'POST',
+      body: { doc_type: docType, ...owner, page: f.page, path, mime: f.mime, size_bytes: f.size },
+      prefer: 'return=minimal',
+    });
+  }
 }
 
 async function open(req, res) {
