@@ -27,7 +27,7 @@ function validate(body) {
     type: str(body.type),
     service: str(body.service),
     message: str(body.message),
-    lang: body.lang === 'en' ? 'en' : 'ro',
+    lang: ['ro', 'ru', 'en'].includes(body.lang) ? body.lang : 'ro',
   };
   const errors = [];
   for (const f of ['name', 'phone', 'email', 'message']) if (!data[f]) errors.push(f);

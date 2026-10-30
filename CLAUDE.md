@@ -1,6 +1,6 @@
-# Atelier Temelia
+# LUXARCH (fost Atelier Temelia)
 
-Site static (index.html, styles.css, script.js), fără build. Publicat pe Vercel la https://atelier-temelia.vercel.app,
+Site static (index.html, styles.css, script.js, i18n.js; animații GSAP din CDN), fără build. Limbi: RO (în HTML), RU și EN (în i18n.js). Publicat pe Vercel la https://atelier-temelia.vercel.app,
 legat de GitHub: https://github.com/adrianmusteata-cyber/atelier-temelia (branch `main`).
 
 ## Sincronizare local ↔ GitHub ↔ Vercel

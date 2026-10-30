@@ -1,243 +1,206 @@
 (() => {
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => [...c.querySelectorAll(s)];
-  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const root = document.documentElement;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const I = window.LX_I18N || { ru: {}, en: {}, extra: {} };
 
-  /* ---------- Traduceri (RO e citit din HTML, EN e definit aici) ---------- */
-  const EN = {
-    'nav.how': 'How we work', 'nav.services': 'Services', 'nav.projects': 'Projects', 'nav.faq': 'FAQ', 'nav.contact': 'Contact',
-    'cta.offer': 'Request a quote', 'cta.projects': 'See projects',
-    'hero.eyebrow': 'Architecture & structural engineering · Chișinău',
-    'hero.l1': 'Warm spaces,', 'hero.l2': '<em>structures</em> that', 'hero.l3': 'endure.',
-    'hero.lead': 'We design homes, residential developments and buildings for businesses. Architecture and structural engineering under one roof — one point of contact, from the first sketch to final handover.',
-    'hero.seal': 'ARCHITECTURE · STRUCTURE · PERMITTING · ',
-    'hero.badge1': '2 disciplines', 'hero.badge2': '1 single team',
-    'story.eyebrow': 'How we work', 'story.title': 'From foundation <em>to home.</em>',
-    'story.s1t': 'Foundation', 'story.s1p': 'We read the site: geotechnical survey, zoning rules, orientation. Every good project starts on solid ground.',
-    'story.s2t': 'Structure', 'story.s2p': 'Our engineers size the columns, beams and slabs from the concept stage — not after the drawings are done.',
-    'story.s3t': 'Architecture', 'story.s3p': 'Volumes, light and materials grow together with the structure. That is why nothing needs redoing halfway.',
-    'story.s4t': 'Home', 'story.s4p': 'A complete, coherent, permitted design — ready to build, with us on site until handover.',
-    'svc.eyebrow': 'Services', 'svc.title': 'Two disciplines. <em>One roof.</em>',
-    'svc.lead': 'When the architect and the structural engineer sit at the same table, the project comes out more coherent, faster and with no surprises on site.',
-    'svc.arch': 'Architecture', 'svc.struct': 'Structure', 'svc.core': 'one single<br>contact',
-    'svc.a.t': 'Architectural design', 'svc.a.p': 'We create beautiful, livable spaces, tailored to the site, the budget and the way you want to live or work.',
-    'svc.a.1': 'Feasibility studies & concept', 'svc.a.2': 'Building permit documentation', 'svc.a.3': 'Technical design & construction details',
-    'svc.a.4': 'Interior design & 3D renderings', 'svc.a.5': 'On-site technical assistance',
-    'svc.b.t': 'Structural design', 'svc.b.p': 'Safe, efficient and economical structures — carefully calculated, for buildings that stand the test of time and earthquakes.',
-    'svc.b.1': 'Reinforced concrete, steel and timber structures', 'svc.b.2': 'Seismic design to current codes', 'svc.b.3': 'Technical assessments of existing buildings',
-    'svc.b.4': 'Strengthening, refurbishment & extra storeys', 'svc.b.5': 'Construction cost optimisation',
-    'stats.1': 'years of experience', 'stats.2': 'projects delivered', 'stats.3': 'sqm designed', 'stats.4': 'architects & engineers on the team',
-    'proj.eyebrow': 'Portfolio', 'proj.title': 'Selected <em>projects</em>',
-    'proj.f.all': 'All', 'proj.f.rez': 'Residential', 'proj.f.dev': 'Developments', 'proj.f.com': 'Commercial',
-    'tag.both': 'Architecture + Structure', 'tag.arch': 'Architecture', 'tag.struct': 'Structure',
-    'p1.t': 'House among the orchards', 'p1.m': 'Feleacu · 2024 · 240 sqm',
-    'p2.t': 'Valea Ierii Cabin', 'p2.m': 'Valea Ierii · 2025 · 120 sqm',
-    'p3.t': 'Teilor Residences', 'p3.m': 'Cluj-Napoca · 2024 · 48 apartments',
-    'p4.t': 'Hillside Villa', 'p4.m': 'Florești · 2023 · 380 sqm',
-    'p5.t': 'Nordwood Headquarters', 'p5.m': 'Cluj-Napoca · 2022 · 1,900 sqm',
-    'p6.t': 'Jucu Logistics Hall', 'p6.m': 'Jucu · 2023 · 4,200 sqm',
-    'proc.eyebrow': 'Process', 'proc.title': 'Five steps, <em>no surprises.</em>',
-    'proc.1t': 'First meeting', 'proc.1p': 'Tell us what you want. We review the site, the paperwork and the budget — free of charge.',
-    'proc.2t': 'Concept', 'proc.2p': 'Sketches, volumes and first renderings, structurally checked from day one.',
-    'proc.3t': 'Permitting', 'proc.3p': 'We prepare the permit documentation and guide you through approvals and the building permit.',
-    'proc.4t': 'Technical design', 'proc.4p': 'Complete construction drawings — architecture and structure, perfectly coordinated.',
-    'proc.5t': 'On site', 'proc.5p': 'Technical assistance and inspections at key stages, until final handover.',
-    'q.eyebrow': 'Clients', 'q.title': 'What <em>people</em> say',
-    'q.1': '“We had a single point of contact for the whole project. No passing the buck between architect and engineer.”', 'q.1c': 'Family house, Feleacu',
-    'q.2': '“The structure was optimised from the concept stage. We saved a lot on construction, with no compromises.”', 'q.2c': 'Developer, Teilor Residences',
-    'q.3': '“Deadlines met, clear communication and an office building our team genuinely enjoys.”', 'q.3c': 'Director, Nordwood',
-    'faq.eyebrow': 'FAQ', 'faq.title': 'Good to <em>know</em>', 'faq.lead': 'Can’t find the answer? Call or write to us — we reply the same working day.',
-    'faq.1q': 'How much does a project cost?', 'faq.1a': 'It depends on the area, complexity and the stages you need. After a first conversation we send a clear quote, broken down by stage, with no hidden costs.',
-    'faq.2q': 'How long until I get the building permit?', 'faq.2a': 'For a house, the permit documentation is usually ready 4–8 weeks after the concept is approved. Approval times then depend on the city hall.',
-    'faq.3q': 'Why is it better to have architecture and structure done by the same team?', 'faq.3a': 'Because the structure is designed together with the space. You avoid redesigns, delays and extra costs that appear when two separate designers don’t coordinate.',
-    'faq.4q': 'Do you do only the structural design if I already have an architect?', 'faq.4a': 'Yes. We often work with other architects and studios, providing structural design and technical assessments.',
-    'faq.5q': 'Do you work outside Chișinău?', 'faq.5a': 'Yes, we design all over the country. We agree together on a schedule for site visits.',
-    'c.eyebrow': 'Contact', 'c.title': 'Let’s build <em>something good</em> together.', 'c.lead': 'Tell us briefly about your project. We’ll send a quote within 48 hours.',
-    'c.phone': 'Phone', 'c.wa': 'Message us on WhatsApp', 'c.addr': 'Office',
-    'f.name': 'Name', 'f.phone': 'Phone', 'f.type': 'Project type', 'f.service': 'Services needed', 'f.msg': 'About the project',
-    'f.msgph': 'Location, approximate area, what you have in mind…',
-    'f.t1': 'Family house', 'f.t2': 'Residential development', 'f.t3': 'Office / commercial building', 'f.t4': 'Hall / industrial', 'f.t5': 'Assessment / strengthening', 'f.t6': 'Something else',
-    'f.s1': 'Architecture + Structure', 'f.s2': 'Architecture only', 'f.s3': 'Structure only', 'f.s4': 'Not sure yet',
-    'f.consent': 'I agree that Atelier Temelia may use my name, phone and email only to reply to this request. The data is not shared with other companies for marketing. To have your data deleted, write to adrian.musteata@lh47arch.com.',
-    'f.send': 'Send request', 'f.fail': "We couldn't send your request. Contact us directly:", 'f.waSend': 'Send via WhatsApp', 'f.call': 'Call',
-    'foot.tag': 'Architecture & Structure',
-  };
-  const MSG = {
-    ro: { ok: 'Mulțumim! Am primit cererea și revenim în curând.', err: 'Completează câmpurile marcate, te rog.', sending: 'Se trimite…' },
-    en: { ok: 'Thank you! We received your request and will be in touch soon.', err: 'Please fill in the highlighted fields.', sending: 'Sending…' },
-  };
-  const MARQUEE = {
-    ro: ['Case unifamiliale', 'Ansambluri rezidențiale', 'Clădiri de birouri', 'Hale industriale', 'Expertize tehnice', 'Consolidări', 'Design interior'],
-    en: ['Family homes', 'Residential developments', 'Office buildings', 'Industrial halls', 'Technical assessments', 'Strengthening', 'Interior design'],
-  };
+  // Animațiile pornesc doar dacă GSAP s-a încărcat; altfel pagina rămâne statică și completă
+  const anim = !!(window.gsap && window.ScrollTrigger) && root.classList.contains('js-anim');
+  if (!anim) root.classList.remove('js-anim', 'intro');
+  if (anim) gsap.registerPlugin(ScrollTrigger);
 
-  const RO = {}, RO_PH = {};
+  /* ---------- Limbi: RO e citit din HTML, RU/EN vin din i18n.js ---------- */
+  const LANGS = ['ro', 'ru', 'en'];
+  const RO = {}, RO_PH = {}, RO_ALT = {}, RO_ARIA = {};
   $$('[data-i18n]').forEach(el => { RO[el.dataset.i18n] = el.innerHTML; });
   $$('[data-i18n-ph]').forEach(el => { RO_PH[el.dataset.i18nPh] = el.placeholder; });
-  const ROTITLE = document.title;
+  $$('[data-i18n-alt]').forEach(el => { RO_ALT[el.dataset.i18nAlt] = el.alt; });
+  $$('[data-i18n-aria]').forEach(el => { RO_ARIA[el.dataset.i18nAria] = el.getAttribute('aria-label'); });
   let lang = 'ro';
+  const dict = () => (lang === 'ro' ? RO : I[lang] || {});
+  const t = k => dict()[k] ?? RO[k] ?? '';
+  const X = () => (I.extra && (I.extra[lang] || I.extra.ro)) || {};
+  const langHooks = [];
 
   function buildMarquee() {
-    const words = MARQUEE[lang];
-    const chunk = words.map(w => `<span>${w}</span><span class="dot">✦</span>`).join('');
+    const words = X().marquee || [];
+    const chunk = words.map(w => `<span>${w}</span><span class="dot" aria-hidden="true">✦</span>`).join('');
     $('#marquee').innerHTML = chunk + chunk;
   }
 
   function setLang(l) {
-    lang = l;
-    document.documentElement.lang = l;
-    const dict = l === 'en' ? EN : RO;
-    $$('[data-i18n]').forEach(el => { const v = dict[el.dataset.i18n]; if (v != null) el.innerHTML = v; });
-    $$('[data-i18n-ph]').forEach(el => { el.placeholder = l === 'en' ? EN[el.dataset.i18nPh] : RO_PH[el.dataset.i18nPh]; });
-    $$('#langToggle [data-lang]').forEach(s => s.classList.toggle('is-on', s.dataset.lang === l));
-    document.title = l === 'en' ? 'Atelier Temelia — Architecture & Structure' : ROTITLE;
+    lang = LANGS.includes(l) ? l : 'ro';
+    root.lang = lang;
+    const d = dict();
+    $$('[data-i18n]').forEach(el => { const v = d[el.dataset.i18n] ?? RO[el.dataset.i18n]; if (v != null) el.innerHTML = v; });
+    $$('[data-i18n-ph]').forEach(el => { el.placeholder = d[el.dataset.i18nPh] ?? RO_PH[el.dataset.i18nPh]; });
+    $$('[data-i18n-alt]').forEach(el => { el.alt = (lang === 'ro' ? RO_ALT : d)[el.dataset.i18nAlt] ?? RO_ALT[el.dataset.i18nAlt]; });
+    $$('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', d[el.dataset.i18nAria] ?? RO_ARIA[el.dataset.i18nAria]); });
+    $$('#lang [data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+    document.title = X().title || document.title;
+    const desc = $('meta[name="description"]');
+    if (desc && X().desc) desc.content = X().desc;
+    $('#cursorLabel').textContent = X().cursor || '';
     buildMarquee();
-    try { localStorage.setItem('temelia-lang', l); } catch (e) { /* stocare indisponibilă */ }
+    langHooks.forEach(fn => fn());
+    try { localStorage.setItem('temelia-lang', lang); } catch (e) { /* stocare indisponibilă */ }
   }
-  $('#langToggle').addEventListener('click', () => setLang(lang === 'ro' ? 'en' : 'ro'));
-  let saved = null;
-  try { saved = localStorage.getItem('temelia-lang'); } catch (e) { /* stocare indisponibilă */ }
-  setLang(saved === 'en' ? 'en' : 'ro');
+
+  // Prima vizită: limba browserului (ru → RU, ro/mo → RO, altfel EN)
+  function detectLang() {
+    let saved = null;
+    try { saved = localStorage.getItem('temelia-lang'); } catch (e) { /* stocare indisponibilă */ }
+    if (LANGS.includes(saved)) return saved;
+    const nav = (navigator.language || '').toLowerCase();
+    if (nav.startsWith('ru')) return 'ru';
+    if (nav.startsWith('ro') || nav.startsWith('mo')) return 'ro';
+    return 'en';
+  }
+  $$('#lang [data-lang]').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+  setLang(detectLang());
 
   /* ---------- Meniu mobil ---------- */
-  $('#burger').addEventListener('click', () => document.body.classList.toggle('menu-open'));
-  $$('#navLinks a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('menu-open')));
+  const burger = $('#burger');
+  const setMenu = open => {
+    document.body.classList.toggle('menu-open', open);
+    burger.setAttribute('aria-expanded', String(open));
+  };
+  burger.addEventListener('click', () => setMenu(!document.body.classList.contains('menu-open')));
+  $$('#navLinks a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+  addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('menu-open')) { setMenu(false); burger.focus(); } });
 
-  /* ---------- Apariții la scroll ---------- */
-  const io = new IntersectionObserver(entries => entries.forEach(e => {
-    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-  }), { threshold: .15, rootMargin: '0px 0px -6% 0px' });
-  $$('.reveal, .venn, .process-list').forEach(el => io.observe(el));
-
-  /* ---------- Contoare ---------- */
-  const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'ro-RO');
-  const countIO = new IntersectionObserver(entries => entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    countIO.unobserve(e.target);
-    const el = e.target, end = +el.dataset.count, suf = el.dataset.suffix || '';
-    if (reduce) { el.textContent = fmt(end) + suf; return; }
-    const t0 = performance.now(), dur = 1800;
-    const tick = now => {
-      const t = clamp((now - t0) / dur);
-      el.textContent = fmt(Math.round(end * (1 - Math.pow(1 - t, 4)))) + suf;
-      if (t < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }), { threshold: .6 });
-  $$('[data-count]').forEach(el => countIO.observe(el));
-
-  /* ---------- Desenul din secțiunea „Cum lucrăm” ---------- */
-  const story = $('#poveste');
-  const groups = {};
-  $$('[data-stage]', story).forEach(el => { (groups[el.dataset.stage] ||= []).push(el); });
-  const RANGES = { 1: [.02, .24], 2: [.26, .5], 3: [.52, .74], 4: [.76, .96] };
-  const steps = $$('.story-step', story);
-  const bar = $('#storyBar');
-
-  function renderStory() {
-    const r = story.getBoundingClientRect();
-    const total = story.offsetHeight - innerHeight;
-    const p = reduce ? 1 : clamp(-r.top / total);
-    for (const s in groups) {
-      const [a, b] = RANGES[s];
-      const t = clamp((p - a) / (b - a));
-      const g = groups[s], n = g.length;
-      g.forEach((el, i) => {
-        // elementele dintr-o etapă se desenează pe rând, ușor suprapus
-        const start = n > 1 ? (i / n) * .55 : 0;
-        const lt = clamp((t - start) / (n > 1 ? .45 : 1));
-        if (el.classList.contains('fill')) el.style.opacity = lt;
-        else el.style.strokeDashoffset = 1 - lt;
-      });
-    }
-    const active = p < RANGES[2][0] ? 0 : p < RANGES[3][0] ? 1 : p < RANGES[4][0] ? 2 : 3;
-    steps.forEach((s, i) => s.classList.toggle('is-active', i === active));
-    bar.style.transform = `scaleX(${p})`;
-  }
-
-  /* ---------- Nav + scroll ---------- */
+  /* ---------- Nav: fundal după scroll, se ascunde la derulare în jos ---------- */
   const nav = $('#nav');
-  let ticking = false;
-  const onScroll = () => {
+  let lastY = scrollY, ticking = false;
+  addEventListener('scroll', () => {
     if (ticking) return;
     ticking = true;
     requestAnimationFrame(() => {
-      nav.classList.toggle('scrolled', scrollY > 40);
-      renderStory();
+      const y = scrollY;
+      nav.classList.toggle('scrolled', y > 40);
+      nav.classList.toggle('away', y > 300 && y > lastY && !document.body.classList.contains('menu-open'));
+      lastY = y;
       ticking = false;
     });
-  };
-  addEventListener('scroll', onScroll, { passive: true });
-  addEventListener('resize', onScroll);
-  onScroll();
+  }, { passive: true });
 
-  /* ---------- Ilustrații provizorii pentru proiecte ---------- */
-  const sky = (id, a, b) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="400" height="300" fill="url(#${id})"/>`;
-  const grid = (x0, y0, cols, rows, w, h, gx, gy, fill) => {
-    let s = '';
-    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) s += `<rect x="${x0 + c * gx}" y="${y0 + r * gy}" width="${w}" height="${h}" fill="${fill}"/>`;
-    return s;
-  };
-  const ART = {
-    house: id => sky(id, '#F0DCC3', '#DDB28C') +
-      `<circle cx="300" cy="86" r="30" fill="#F8E6CD"/><path d="M0 232 Q200 204 400 226 V300 H0Z" fill="#8F8E66"/>
-       <polygon points="120,232 120,152 185,106 250,152 250,232" fill="#EFE5D6"/>
-       <polyline points="108,160 185,100 262,160" fill="none" stroke="#2B2520" stroke-width="4" stroke-linejoin="round"/>
-       <rect x="250" y="176" width="84" height="56" fill="#A8754B"/><rect x="246" y="172" width="92" height="5" fill="#2B2520"/>
-       <rect x="138" y="176" width="36" height="36" fill="#2E2722"/><rect x="198" y="190" width="24" height="42" fill="#8E4A2A"/>
-       <rect x="264" y="192" width="56" height="26" fill="#F4C27F"/><circle cx="185" cy="140" r="8" fill="#2E2722"/>
-       <circle cx="62" cy="206" r="26" fill="#5F6347"/><rect x="60" y="222" width="4" height="14" fill="#3A3128"/>`,
-    cabin: id => sky(id, '#C9A98E', '#E8C7A0') +
-      `<circle cx="96" cy="76" r="22" fill="#F6E3C8" opacity=".9"/>
-       <path d="M0 250 L60 170 L120 250Z M300 250 L350 160 L400 250Z" fill="#5F6347"/><path d="M30 250 L80 186 L130 250Z M330 250 L372 190 L400 230 V250Z" fill="#4E5239"/>
-       <rect x="0" y="246" width="400" height="54" fill="#6C6A4C"/>
-       <polygon points="140,250 210,108 280,250" fill="#A8754B"/><polygon points="168,250 210,166 252,250" fill="#F4C27F"/>
-       <path d="M210 166 V250 M189 208 H231" stroke="#2B2520" stroke-width="3"/><polyline points="132,256 210,98 288,256" fill="none" stroke="#2B2520" stroke-width="5" stroke-linejoin="round"/>`,
-    block: id => sky(id, '#E9DCCB', '#D7C1A6') +
-      `<rect x="0" y="252" width="400" height="48" fill="#B9A487"/>
-       <rect x="60" y="84" width="120" height="168" fill="#EFE6D8"/>${grid(74, 98, 4, 7, 16, 14, 26, 21, '#4A3F36')}
-       <rect x="196" y="128" width="140" height="124" fill="#C98F67"/>${grid(210, 142, 5, 5, 14, 12, 25, 21, '#F4D3A6')}
-       <rect x="56" y="80" width="128" height="6" fill="#2B2520"/><rect x="192" y="124" width="148" height="6" fill="#2B2520"/>
-       <circle cx="360" cy="230" r="22" fill="#5F6347"/><circle cx="40" cy="232" r="20" fill="#5F6347"/>`,
-    villa: id => sky(id, '#EADFCF', '#CDB79C') +
-      `<path d="M0 220 Q140 180 400 200 V300 H0Z" fill="#9C9670"/>
-       <rect x="60" y="168" width="270" height="62" fill="#F2EBE0"/><rect x="130" y="118" width="190" height="50" fill="#E3D6C2"/>
-       <rect x="50" y="163" width="290" height="7" fill="#2B2520"/><rect x="120" y="112" width="210" height="7" fill="#2B2520"/>
-       <rect x="80" y="184" width="130" height="40" fill="#3B332C"/><rect x="150" y="130" width="110" height="30" fill="#F4C27F"/>
-       <rect x="230" y="184" width="80" height="40" fill="#A8754B"/><rect x="30" y="246" width="230" height="14" fill="#8FB0AA"/>
-       <circle cx="356" cy="196" r="26" fill="#5F6347"/>`,
-    office: id => sky(id, '#E6D3BD', '#C9A584') +
-      `<rect x="0" y="256" width="400" height="44" fill="#A99377"/>
-       <rect x="120" y="44" width="170" height="212" fill="#D8CAB5"/>${grid(130, 54, 1, 1, 150, 192, 0, 0, '#3E3630')}
-       ${Array.from({ length: 11 }, (_, i) => `<rect x="${132 + i * 14}" y="54" width="5" height="192" fill="#B5643C"/>`).join('')}
-       <rect x="112" y="38" width="186" height="8" fill="#2B2520"/><rect x="290" y="170" width="70" height="86" fill="#EFE5D6"/>
-       <rect x="300" y="186" width="50" height="22" fill="#F4C27F"/><circle cx="70" cy="230" r="30" fill="#5F6347"/>`,
-    hall: id => sky(id, '#EEE2D2', '#D9C3A6') +
-      `<rect x="0" y="238" width="400" height="62" fill="#B6A285"/>
-       <path d="M40 238 V150 L100 126 V150 L160 126 V150 L220 126 V150 L280 126 V150 L340 126 V150 L360 150 V238Z" fill="#CDBFA9"/>
-       <path d="M40 150 L100 126 V150 L160 126 V150 L220 126 V150 L280 126 V150 L340 126 V150" fill="none" stroke="#2B2520" stroke-width="3"/>
-       <rect x="70" y="186" width="44" height="52" fill="#5E534A"/><rect x="134" y="186" width="44" height="52" fill="#5E534A"/><rect x="198" y="186" width="44" height="52" fill="#5E534A"/>
-       <rect x="270" y="168" width="70" height="20" fill="#F4C27F"/><rect x="40" y="160" width="320" height="4" fill="#B5643C"/>`,
-  };
-  $$('.project').forEach((p, i) => {
-    const fn = ART[p.dataset.art];
-    if (fn) $('.project-media', p).innerHTML = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${fn('pg' + i)}</svg>`;
+  /* ---------- Poze care nu se încarcă: rămâne un bloc de culoare ---------- */
+  $$('.project-media img, .hero-media img').forEach(img => {
+    const fail = () => img.parentElement.classList.add('broken');
+    if (img.complete && !img.naturalWidth) fail(); else img.addEventListener('error', fail);
   });
 
   /* ---------- Filtre proiecte ---------- */
-  const gridEl = $('#projectGrid');
-  $$('.filter').forEach(btn => btn.addEventListener('click', () => {
+  const track = $('#track');
+  $$('#filters .filter').forEach(btn => btn.addEventListener('click', () => {
     const f = btn.dataset.filter;
-    $$('.filter').forEach(b => b.classList.toggle('is-on', b === btn));
-    gridEl.classList.toggle('filtered', f !== 'all');
-    $$('.project', gridEl).forEach(p => {
-      p.classList.toggle('is-hidden', f !== 'all' && p.dataset.cat !== f);
-      p.classList.add('in');
-    });
+    $$('#filters .filter').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    $$('.project', track).forEach(p => p.classList.toggle('is-hidden', f !== 'all' && p.dataset.cat !== f));
+    if (anim) {
+      ScrollTrigger.refresh();
+      gsap.fromTo($$('.project:not(.is-hidden)', track), { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .7, stagger: .06, ease: 'power3.out', clearProps: 'transform' });
+    }
   }));
 
-  /* ---------- Formular → /api/contact (Telegram) ---------- */
+  /* ---------- Galerie pe tot ecranul ---------- */
+  // [lățime, înălțime] pentru fiecare poză din img/projects/<slug>/<n>-{800,1400,2000}.webp
+  const GALLERY = {
+    'vila-apa': [[2048, 1377], [2048, 1377], [2048, 1377], [2048, 1377]],
+    'casa-copac': [[1500, 1100], [1500, 1100], [1500, 1100], [1500, 1100]],
+    'hotel-panta': [[1875, 2500], [2560, 1536], [2500, 1749], [1875, 2500]],
+    'vitraje': [[1250, 875], [1750, 2500], [1250, 750], [850, 1250]],
+    'casa-piatra': [[1500, 900], [1500, 1012], [1500, 1024], [1500, 1196]],
+    'nistru': [[1500, 1125], [1500, 750], [1250, 962], [1500, 900]],
+    'sase-corpuri': [[1920, 1526], [1920, 1528], [2560, 2035], [2560, 2035]],
+    'sportiv': [[1276, 851], [1440, 960], [1404, 936], [1328, 886]],
+    'data-center': [[1920, 1080], [1920, 1080], [1920, 1440]],
+    'crama': [[1088, 1143], [2429, 1249], [1039, 1151]],
+  };
+  // Ordinea în galerie: pentru hotel-panta și crama, poza de copertă e a 2-a de pe disc
+  const ORDER = { 'hotel-panta': [2, 1, 3, 4], 'crama': [2, 1, 3] };
+  const srcsetFor = (slug, n, w) => {
+    const base = `img/projects/${slug}/${n}`;
+    const parts = [`${base}-800.webp 800w`, `${base}-1400.webp ${Math.min(1400, w)}w`];
+    if (w > 1400) parts.push(`${base}-2000.webp ${Math.min(2000, w)}w`);
+    return parts.join(', ');
+  };
+
+  const lb = $('#lb'), lbImg = $('#lbImg'), lbStage = $('#lbStage');
+  let lbSlug = null, lbIndex = 0, lbOpener = null;
+
+  function lbShow(i) {
+    const list = GALLERY[lbSlug];
+    lbIndex = (i + list.length) % list.length;
+    const order = ORDER[lbSlug] || list.map((_, k) => k + 1);
+    const n = order[lbIndex], [w, h] = list[n - 1];
+    const card = $(`.project[data-slug="${lbSlug}"]`);
+    const title = $('.project-title', card).textContent;
+    lbStage.classList.remove('broken');
+    lbImg.onerror = () => lbStage.classList.add('broken');
+    lbImg.width = w; lbImg.height = h;
+    lbImg.sizes = '100vw';
+    lbImg.srcset = srcsetFor(lbSlug, n, w);
+    lbImg.src = `img/projects/${lbSlug}/${n}-1400.webp`;
+    lbImg.alt = `${title} — ${lbIndex + 1}`;
+    $('#lbTitle').textContent = title;
+    $('#lbMeta').textContent = $('.project-meta', card).textContent;
+    $('#lbCount').textContent = `${String(lbIndex + 1).padStart(2, '0')} ${X().lbOf || '/'} ${String(list.length).padStart(2, '0')}`;
+    if (anim) gsap.fromTo(lbImg, { opacity: 0, scale: 1.04 }, { opacity: 1, scale: 1, duration: .7, ease: 'power3.out' });
+  }
+
+  function lbOpen(slug, opener) {
+    lbSlug = slug; lbOpener = opener;
+    lb.hidden = false;
+    root.classList.add('lb-open');
+    lbShow(0);
+    history.pushState({ lb: 1 }, '');
+    if (anim) gsap.fromTo(lb, { clipPath: 'inset(100% 0 0 0)' }, { clipPath: 'inset(0% 0 0 0)', duration: .8, ease: 'expo.inOut' });
+    $('#lbClose').focus();
+  }
+
+  function lbHide() {
+    if (lb.hidden) return;
+    const done = () => {
+      lb.hidden = true;
+      root.classList.remove('lb-open');
+      lbImg.removeAttribute('src'); lbImg.removeAttribute('srcset');
+      if (lbOpener) lbOpener.focus();
+    };
+    if (anim) gsap.to(lb, { clipPath: 'inset(0 0 100% 0)', duration: .6, ease: 'expo.inOut', onComplete: done });
+    else done();
+  }
+  // Închiderea trece prin istoric, ca butonul „înapoi” al telefonului să închidă galeria
+  const lbClose = () => (history.state && history.state.lb ? history.back() : lbHide());
+  addEventListener('popstate', lbHide);
+
+  $$('.project-open').forEach(b => b.addEventListener('click', () => lbOpen(b.closest('.project').dataset.slug, b)));
+  $('#lbClose').addEventListener('click', lbClose);
+  $('#lbPrev').addEventListener('click', () => lbShow(lbIndex - 1));
+  $('#lbNext').addEventListener('click', () => lbShow(lbIndex + 1));
+  lbStage.addEventListener('click', e => { if (e.target === lbStage) lbClose(); });
+  lb.addEventListener('keydown', e => {
+    if (e.key === 'Escape') lbClose();
+    else if (e.key === 'ArrowRight') lbShow(lbIndex + 1);
+    else if (e.key === 'ArrowLeft') lbShow(lbIndex - 1);
+    else if (e.key === 'Tab') {
+      // focusul rămâne în galerie
+      const f = [$('#lbClose'), $('#lbPrev'), $('#lbNext')];
+      const i = f.indexOf(document.activeElement);
+      e.preventDefault();
+      f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+    }
+  });
+  let touchX = null;
+  lbStage.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  lbStage.addEventListener('touchend', e => {
+    if (touchX == null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) lbShow(lbIndex + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  /* ---------- Formular → /api/contact (Supabase + Telegram) ---------- */
   const form = $('#contactForm');
   const msg = $('#formMsg');
   const sendBtn = $('#formSend');
@@ -247,26 +210,28 @@
   let sending = false;
 
   const markInvalid = (el, bad) => (el.closest('.field') || el.closest('.consent')).classList.toggle('invalid', bad);
+  $$('[required]', form).forEach(inp => inp.addEventListener(inp.type === 'checkbox' ? 'change' : 'input', () => {
+    if (inp.checkValidity()) markInvalid(inp, false);
+  }));
 
   // Textul cererii, gata de trimis pe WhatsApp dacă serverul nu răspunde
   function whatsappText() {
-    const t = lang === 'en' ? EN : RO;
     const opt = name => form.elements[name].selectedOptions[0]?.textContent.trim() || '';
     return [
-      lang === 'en' ? 'Hello! I would like a quote:' : 'Bună ziua! Aș dori o ofertă:',
-      `${t['f.name']}: ${form.elements.name.value.trim()}`,
-      `${t['f.phone']}: ${form.elements.phone.value.trim()}`,
+      X().waHello,
+      `${t('f.name')}: ${form.elements.name.value.trim()}`,
+      `${t('f.phone')}: ${form.elements.phone.value.trim()}`,
       `Email: ${form.elements.email.value.trim()}`,
-      `${t['f.type']}: ${opt('type')}`,
-      `${t['f.service']}: ${opt('service')}`,
-      `${t['f.msg']}: ${form.elements.message.value.trim()}`,
+      `${t('f.type')}: ${opt('type')}`,
+      `${t('f.service')}: ${opt('service')}`,
+      `${t('f.msg')}: ${form.elements.message.value.trim()}`,
     ].join('\n');
   }
 
   function setSending(on) {
     sending = on;
     sendBtn.disabled = on;
-    sendLabel.textContent = on ? MSG[lang].sending : (lang === 'en' ? EN : RO)['f.send'];
+    sendLabel.textContent = on ? X().sending : t('f.send');
   }
 
   form.addEventListener('submit', async e => {
@@ -279,7 +244,7 @@
       markInvalid(inp, bad);
       if (bad) ok = false;
     });
-    if (!ok) { msg.textContent = MSG[lang].err; return; }
+    if (!ok) { msg.textContent = X().err; return; }
 
     const f = form.elements;
     const payload = {
@@ -298,11 +263,11 @@
       });
       const res = await r.json().catch(() => ({}));
       if (r.ok && res.ok) {
-        msg.textContent = MSG[lang].ok;
+        msg.textContent = X().ok;
         form.reset();
       } else if (r.status === 400 && Array.isArray(res.fields) && res.fields.length) {
         res.fields.forEach(n => { if (f[n]) markInvalid(f[n], true); });
-        msg.textContent = MSG[lang].err;
+        msg.textContent = X().err;
       } else {
         throw new Error(`HTTP ${r.status}`);
       }
@@ -315,4 +280,115 @@
   });
 
   $('#year').textContent = new Date().getFullYear();
+
+  if (!anim) return;
+
+  /* ==========================================================
+     ANIMAȚII (doar cu GSAP și fără prefers-reduced-motion)
+     ========================================================== */
+  const ease = 'expo.out';
+
+  /* ---------- Intro + Hero ---------- */
+  const heroTl = gsap.timeline({ defaults: { ease } });
+  if (root.classList.contains('intro')) {
+    try { sessionStorage.setItem('lx-intro', '1'); } catch (e) { /* stocare indisponibilă */ }
+    heroTl
+      .fromTo('.loader-word span', { yPercent: 110, y: 0 }, { yPercent: 0, y: 0, duration: .7, stagger: .05 })
+      .fromTo('.loader-line span', { scaleX: 0 }, { scaleX: 1, duration: .6, ease: 'power2.inOut' }, '<.1')
+      .to('#loader', { yPercent: -100, duration: .7, ease: 'expo.inOut' }, '+=.05')
+      .add(() => root.classList.remove('intro'));
+  }
+  heroTl
+    .fromTo('.hero-title .line > span', { yPercent: 110, y: 0 }, { yPercent: 0, y: 0, duration: 1.3, stagger: .1 }, root.classList.contains('intro') ? '-=.35' : 0)
+    .to('.hero [data-anim]', { opacity: 1, y: 0, duration: 1, stagger: .08 }, '-=1')
+    .fromTo('.hero-media', { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.5, ease: 'expo.inOut' }, '-=1.1')
+    .from('.hero-media img', { scale: 1.25, duration: 2, ease }, '<')
+    .from('.hero-facts li', { opacity: 0, y: 20, duration: .8, stagger: .08 }, '-=1.2');
+
+  // Parallax pe poza mare din Hero
+  gsap.to('.hero-media img', {
+    yPercent: 10, ease: 'none',
+    scrollTrigger: { trigger: '.hero-media', start: 'top bottom', end: 'bottom top', scrub: true },
+  });
+
+  /* ---------- Apariții la scroll ---------- */
+  ScrollTrigger.batch('[data-anim]:not(.hero [data-anim])', {
+    start: 'top 88%',
+    once: true,
+    onEnter: els => gsap.to(els, { opacity: 1, y: 0, duration: 1.1, stagger: .1, ease }),
+  });
+  $$('.split-title').forEach(h => {
+    gsap.from(h, { yPercent: 40, opacity: 0, duration: 1.3, ease, scrollTrigger: { trigger: h, start: 'top 88%', once: true } });
+  });
+
+  /* ---------- Manifest: cuvintele se aprind pe rând la scroll ---------- */
+  const manifest = $('#manifestText');
+  let manifestTween = null;
+  function buildManifest() {
+    if (manifestTween) { manifestTween.scrollTrigger.kill(); manifestTween.kill(); }
+    manifest.innerHTML = manifest.textContent.trim().split(/\s+/).map(w => `<span class="w">${w}</span>`).join(' ');
+    manifestTween = gsap.fromTo($$('.w', manifest), { opacity: .14 }, {
+      opacity: 1, stagger: .1, ease: 'none',
+      scrollTrigger: { trigger: manifest, start: 'top 80%', end: 'bottom 40%', scrub: true },
+    });
+  }
+  buildManifest();
+  langHooks.push(buildManifest);
+
+  /* ---------- Proiecte: bandă orizontală fixată (desktop), cortine (telefon) ---------- */
+  const mm = gsap.matchMedia();
+  mm.add('(min-width: 1024px)', () => {
+    const dist = () => Math.max(0, track.scrollWidth - innerWidth);
+    gsap.to(track, {
+      x: () => -dist(), ease: 'none',
+      scrollTrigger: {
+        trigger: '#projectsPin', start: 'top top', end: () => '+=' + dist(),
+        pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1,
+      },
+    });
+    gsap.fromTo('.project-media', { clipPath: 'inset(0% 0% 100% 0%)' }, {
+      clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, stagger: .12, ease: 'expo.inOut',
+      scrollTrigger: { trigger: '#projectsPin', start: 'top 70%', once: true },
+    });
+  });
+  mm.add('(max-width: 1023.98px)', () => {
+    $$('.project-media').forEach(m => gsap.fromTo(m, { clipPath: 'inset(0% 0% 100% 0%)' }, {
+      clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, ease: 'expo.inOut',
+      scrollTrigger: { trigger: m, start: 'top 90%', once: true },
+    }));
+  });
+
+  /* ---------- Proces: linia verticală se desenează ---------- */
+  gsap.fromTo('#steps', { '--line': 0 }, {
+    '--line': 1, ease: 'none',
+    scrollTrigger: { trigger: '#steps', start: 'top 75%', end: 'bottom 60%', scrub: true },
+  });
+
+  /* ---------- Cuvântul uriaș din subsol ---------- */
+  gsap.from('.footer-word', {
+    yPercent: 60, opacity: 0, duration: 1.4, ease,
+    scrollTrigger: { trigger: '.footer', start: 'top 95%', once: true },
+  });
+
+  /* ---------- Cursor personalizat (doar mouse) ---------- */
+  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const cursor = $('#cursor');
+    root.classList.add('has-cursor');
+    const xTo = gsap.quickTo(cursor, 'x', { duration: .5, ease: 'power3' });
+    const yTo = gsap.quickTo(cursor, 'y', { duration: .5, ease: 'power3' });
+    addEventListener('pointermove', e => { xTo(e.clientX); yTo(e.clientY); cursor.classList.add('on'); }, { passive: true });
+    document.addEventListener('pointerleave', () => cursor.classList.remove('on'));
+    $$('[data-cursor]').forEach(el => {
+      el.addEventListener('pointerenter', () => cursor.classList.add('view'));
+      el.addEventListener('pointerleave', () => cursor.classList.remove('view'));
+    });
+    $$('a, button:not([data-cursor]), summary, input, select, textarea, label').forEach(el => {
+      el.addEventListener('pointerenter', () => cursor.classList.add('link'));
+      el.addEventListener('pointerleave', () => cursor.classList.remove('link'));
+    });
+  }
+
+  // Fonturile și pozele schimbă înălțimile: recalculăm pozițiile
+  if (document.fonts) document.fonts.ready.then(() => ScrollTrigger.refresh());
+  addEventListener('load', () => ScrollTrigger.refresh());
 })();

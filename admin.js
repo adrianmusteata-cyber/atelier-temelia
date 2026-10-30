@@ -132,7 +132,7 @@
       $('#more').hidden = !cursor;
       const empty = !$('#list').children.length;
       msg.textContent = empty ? (status === 'toate' ? 'Nicio cerere încă.' : 'Nicio cerere cu acest status.') : '';
-      document.title = `${data.counts.noua ? `(${data.counts.noua}) ` : ''}Cereri — Atelier Temelia`;
+      document.title = `${data.counts.noua ? `(${data.counts.noua}) ` : ''}Cereri — LUXARCH`;
     } catch (err) {
       if (seq !== loadSeq) return;
       onError(err, () => {
@@ -177,7 +177,7 @@
       $('#detail').innerHTML = `
         <article class="detail-card">
           <h1>${esc(r.name)}</h1>
-          <p class="muted">${esc(fmt(r.created_at))} · ${r.lang === 'en' ? 'Engleză' : 'Română'}</p>
+          <p class="muted">${esc(fmt(r.created_at))} · ${({ en: 'Engleză', ru: 'Rusă' })[r.lang] || 'Română'}</p>
           <div class="detail-actions">
             <a class="btn btn-sm" href="tel:${esc(phone)}">Sună</a>
             <a class="btn btn-sm btn-clay" href="https://wa.me/${esc(phone.replace('+', ''))}" target="_blank" rel="noopener">WhatsApp</a>

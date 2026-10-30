@@ -1,5 +1,7 @@
 # Formular de contact funcțional (Telegram, admin, email)
 
+> Notă (30.10.2026): biroul a fost redenumit **LUXARCH**; vezi `2026-10-30-redesign-luxarch.md`. Subiectul emailului din Etapa 3 devine «… – LUXARCH». Formularul trimite acum și `lang: 'ru'`.
+
 > Stare: Confirmată (26.10.2026). Etapa 1 livrată (Telegram). Etapa 2 livrată și verificată de proprietar: Supabase + panou /admin. Emailul către proprietar (Resend) e scris, dar amânat la cererea proprietarului (26.10.2026): OWNER_EMAIL și MAIL_FROM sunt deja în Vercel; se activează doar adăugând RESEND_API_KEY și republicând. Etapa 3 nu e începută.
 
 ## Pe scurt

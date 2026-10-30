@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0D0B09">
+  <title>Confidențialitate — LUXARCH</title>
+  <meta name="description" content="Cum folosește LUXARCH datele trimise prin formularul de contact.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Manrope:wght@400;500;600;700&display=swap&subset=cyrillic,latin-ext" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .legal { padding: clamp(130px, 16vw, 200px) 0 clamp(80px, 10vw, 140px); }
+    .legal h1 { font-size: clamp(3rem, 9vw, 8rem); margin: 26px 0 clamp(40px, 6vw, 80px); }
+    .legal section[data-lang-block] { max-width: 72ch; }
+    .legal h2 { font-size: clamp(1.6rem, 2.6vw, 2.3rem); margin: 44px 0 12px; }
+    .legal p, .legal li { color: var(--mute); }
+    .legal ul { display: grid; gap: 8px; margin-top: 10px; }
+    .legal li::before { content: "— "; color: var(--lux); }
+    .legal a { color: var(--lux); text-decoration: underline; text-underline-offset: 3px; }
+    .legal .back { display: inline-block; margin-top: 56px; }
+    [data-lang-block][hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <header class="nav scrolled">
+    <div class="wrap nav-inner">
+      <a href="/" class="brand" aria-label="LUXARCH">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 27 V16 a9 9 0 0 1 18 0 V27" /><path d="M3 27 H29" /><circle cx="16" cy="17" r="2.6" /></svg>
+        <span class="brand-word">LUXARCH</span>
+      </a>
+      <div class="lang" id="lang" role="group" aria-label="Limba / Язык / Language">
+        <button type="button" data-lang="ro" aria-pressed="true">RO</button>
+        <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="legal wrap">
+    <section data-lang-block="ro">
+      <p class="eyebrow">LUXARCH</p>
+      <h1>Confidențialitate</h1>
+      <p>Această pagină explică ce date colectăm prin formularul de pe site și ce facem cu ele.</p>
+      <h2>Cine prelucrează datele</h2>
+      <p>LUXARCH — Adrian Musteață, Str. Eugen Doga 2, Chișinău. Contact: <a href="mailto:adrian.musteata@lh47arch.com">adrian.musteata@lh47arch.com</a>, +373 68 133 945.</p>
+      <h2>Ce date</h2>
+      <ul><li>nume, telefon, email;</li><li>tipul proiectului, serviciile dorite și ce ne scrieți despre proiect;</li><li>limba în care ați completat formularul.</li></ul>
+      <h2>De ce</h2>
+      <p>Doar ca să vă răspundem la cerere și să vă trimitem o ofertă. Nu folosim datele pentru publicitate și nu le transmitem altor firme în scop de marketing.</p>
+      <h2>Unde ajung</h2>
+      <ul><li>Vercel — găzduirea site-ului;</li><li>Supabase — baza de date în care se păstrează cererea;</li><li>Telegram — notificarea pe care o primim despre cerere;</li><li>Resend — trimiterea emailurilor (dacă e folosit).</li></ul>
+      <h2>Cât timp</h2>
+      <p>Păstrăm cererea până ne cereți ștergerea ei.</p>
+      <h2>Drepturile dumneavoastră</h2>
+      <p>Puteți cere oricând să vedeți, să corectați sau să ștergeți datele: scrieți la <a href="mailto:adrian.musteata@lh47arch.com">adrian.musteata@lh47arch.com</a>.</p>
+      <a class="btn btn-ghost back" href="/">← Înapoi la site</a>
+    </section>
+
+    <section data-lang-block="ru" hidden>
+      <p class="eyebrow">LUXARCH</p>
+      <h1>Конфиденциальность</h1>
+      <p>На этой странице объясняется, какие данные мы получаем через форму на сайте и что с ними делаем.</p>
+      <h2>Кто обрабатывает данные</h2>
+      <p>LUXARCH — Адриан Мустяцэ, ул. Еуджен Дога 2, Кишинёв. Контакт: <a href="mailto:adrian.musteata@lh47arch.com">adrian.musteata@lh47arch.com</a>, +373 68 133 945.</p>
+      <h2>Какие данные</h2>
+      <ul><li>имя, телефон, email;</li><li>тип проекта, нужные услуги и то, что вы пишете о проекте;</li><li>язык, на котором заполнена форма.</li></ul>
+      <h2>Зачем</h2>
+      <p>Только чтобы ответить на заявку и прислать предложение. Мы не используем данные для рекламы и не передаём их другим компаниям для маркетинга.</p>
+      <h2>Где хранятся</h2>
+      <ul><li>Vercel — хостинг сайта;</li><li>Supabase — база данных, где хранится заявка;</li><li>Telegram — уведомление о заявке, которое получаем мы;</li><li>Resend — отправка писем (если используется).</li></ul>
+      <h2>Как долго</h2>
+      <p>Храним заявку, пока вы не попросите её удалить.</p>
+      <h2>Ваши права</h2>
+      <p>Вы можете в любой момент попросить показать, исправить или удалить ваши данные: напишите на <a href="mailto:adrian.musteata@lh47arch.com">adrian.musteata@lh47arch.com</a>.</p>
+      <a class="btn btn-ghost back" href="/">← Вернуться на сайт</a>
+    </section>
+
+    <section data-lang-block="en" hidden>
+      <p class="eyebrow">LUXARCH</p>
+      <h1>Privacy</h1>
+      <p>This page explains what data we collect through the form on this site and what we do with it.</p>
+      <h2>Who processes the data</h2>
+      <p>LUXARCH — Adrian Musteață, 2 Eugen Doga St, Chișinău. Contact: <a href="mailto:adrian.musteata@lh47arch.com">adrian.musteata@lh47arch.com</a>, +373 68 133 945.</p>
+      <h2>What data</h2>
+      <ul><li>name, phone, email;</li><li>project type, services needed and what you tell us about the project;</li><li>the language you used to fill in the form.</li></ul>
+      <h2>Why</h2>
+      <p>Only to reply to your request and send you a quote. We do not use the data for advertising and do not share it with other companies for marketing.</p>
+      <h2>Where it goes</h2>
+      <ul><li>Vercel — website hosting;</li><li>Supabase — the database where the request is stored;</li><li>Telegram — the notification we receive about the request;</li><li>Resend — sending emails (if used).</li></ul>
+      <h2>How long</h2>
+      <p>We keep the request until you ask us to delete it.</p>
+      <h2>Your rights</h2>
+      <p>You can ask at any time to see, correct or delete your data: write to <a href="mailto:adrian.musteata@lh47arch.com">adrian.musteata@lh47arch.com</a>.</p>
+      <a class="btn btn-ghost back" href="/">← Back to the site</a>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var LANGS = ['ro', 'ru', 'en'], TITLES = { ro: 'Confidențialitate — LUXARCH', ru: 'Конфиденциальность — LUXARCH', en: 'Privacy — LUXARCH' };
+      function set(l) {
+        if (LANGS.indexOf(l) < 0) l = 'ro';
+        document.documentElement.lang = l;
+        document.title = TITLES[l];
+        document.querySelectorAll('[data-lang-block]').forEach(function (s) { s.hidden = s.getAttribute('data-lang-block') !== l; });
+        document.querySelectorAll('#lang [data-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === l)); });
+        try { localStorage.setItem('temelia-lang', l); } catch (e) {}
+      }
+      var saved = null;
+      try { saved = localStorage.getItem('temelia-lang'); } catch (e) {}
+      var nav = (navigator.language || '').toLowerCase();
+      set(saved || (nav.indexOf('ru') === 0 ? 'ru' : nav.indexOf('ro') === 0 || nav.indexOf('mo') === 0 ? 'ro' : 'en'));
+      document.querySelectorAll('#lang [data-lang]').forEach(function (b) { b.addEventListener('click', function () { set(b.getAttribute('data-lang')); }); });
+    })();
+  </script>
+</body>
+</html>

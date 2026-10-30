@@ -1,5 +1,5 @@
 -- ==========================================================
--- Atelier Temelia — schema pentru cererile din formular.
+-- LUXARCH (fost Atelier Temelia) — schema pentru cererile din formular.
 -- Se rulează o singură dată în Supabase: SQL Editor → New query → Run.
 -- Accesul se face doar de pe server (cheia service_role); RLS e activat
 -- fără nicio politică, deci tabelele nu pot fi citite din browser.
@@ -14,7 +14,7 @@ create table if not exists public.requests (
   type              text not null,
   service           text not null,
   message           text not null default '',
-  lang              text not null default 'ro' check (lang in ('ro', 'en')),
+  lang              text not null default 'ro' check (lang in ('ro', 'ru', 'en')),
   status            text not null default 'noua'
                     check (status in ('noua', 'in_lucru', 'inchisa')),
   status_updated_at timestamptz not null default now()
