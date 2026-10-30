@@ -291,6 +291,269 @@
     }
   });
 
+  /* ---------- Vizualizare proiect → /api/contact?action=viz-* (generarea rulează doar pe server) ---------- */
+  (() => {
+    const vf = $('#vizForm');
+    if (!vf) return;
+    const V = () => X().viz || {};
+    const vmsg = $('#vizMsg'), vbtn = $('#vizSend'), vlabel = $('#vizSendLabel'), photoMsg = $('#vizPhotoMsg');
+    const result = $('#vizResult');
+    const MAX = 3, MAX_SIZE = 10 * 1024 * 1024;
+    let SIDE = 2048; // latura mare după micșorare: o spune serverul (modelul Cloudflare primește doar poze sub 512 px)
+    const OK_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const vizStartedAt = Date.now();
+    // photos: [{ blob, url }]; token/uploads: rezervarea de pe server (valabilă 15 minute)
+    const st = { photos: [], token: null, uploads: null, uploaded: false, busy: false, phone: '', tsToken: '', tsId: null, siteKey: '' };
+
+    // Formularul apare doar dacă serverul are cheile (serviciul de imagini + Turnstile); altfel rămâne trimiterea spre contact
+    fetch('/api/contact?action=viz-status', { signal: AbortSignal.timeout(8000) })
+      .then(r => r.json())
+      .then(d => {
+        if (!d || !d.enabled || !d.site_key) return;
+        st.siteKey = d.site_key;
+        if (Number(d.max_side) >= 256) SIDE = Number(d.max_side);
+        $('#vizOff').hidden = true;
+        vf.hidden = false;
+        loadTurnstile();
+        if (anim) ScrollTrigger.refresh();
+      })
+      .catch(() => { /* rămâne trimiterea spre formularul de contact */ });
+
+    /* Turnstile (Cloudflare): scriptul se încarcă doar când formularul e activ */
+    function loadTurnstile() {
+      window.lxTurnstileReady = renderTurnstile;
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=lxTurnstileReady';
+      s.async = true;
+      document.head.appendChild(s);
+    }
+    function renderTurnstile() {
+      const box = $('#vizTs');
+      try {
+        st.tsId = window.turnstile.render(box, {
+          sitekey: st.siteKey, theme: 'dark', language: lang,
+          // Pe ecranele foarte înguste (320 px) varianta normală de 300 px nu încape
+          size: box.clientWidth && box.clientWidth < 300 ? 'compact' : 'flexible',
+          callback: tok => { st.tsToken = tok; },
+          'expired-callback': () => { st.tsToken = ''; },
+          'error-callback': () => { st.tsToken = ''; },
+        });
+      } catch (e) { /* widgetul lipsește: trimiterea va cere reîncărcarea paginii */ }
+    }
+    // Tokenul Turnstile e de unică folosință: după fiecare „start” se cere unul nou
+    function resetTurnstile() {
+      st.tsToken = '';
+      try { if (window.turnstile && st.tsId != null) window.turnstile.reset(st.tsId); } catch (e) { /* fără widget */ }
+    }
+
+    // Pozele, tipul sau dorințele s-au schimbat: rezervarea veche nu mai e bună
+    const dropReservation = () => { st.token = null; st.uploads = null; st.uploaded = false; };
+    vf.addEventListener('change', e => { if (e.target.name === 'kind') dropReservation(); });
+    vf.elements.wishes.addEventListener('input', dropReservation);
+
+    // Poza se micșorează în browser: latura mare ≤ SIDE (2048 px sau cât cere modelul), JPEG ~0,85
+    async function shrink(file) {
+      let src, w, h, url;
+      try {
+        src = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        w = src.width; h = src.height;
+      } catch (e) {
+        url = URL.createObjectURL(file);
+        src = await new Promise((ok, fail) => { const img = new Image(); img.onload = () => ok(img); img.onerror = fail; img.src = url; });
+        w = src.naturalWidth; h = src.naturalHeight;
+      } finally {
+        if (url) URL.revokeObjectURL(url);
+      }
+      const k = Math.min(1, SIDE / Math.max(w, h));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * k); canvas.height = Math.round(h * k);
+      canvas.getContext('2d').drawImage(src, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(ok => canvas.toBlob(ok, 'image/jpeg', 0.85));
+      if (!blob) throw new Error('canvas');
+      return blob;
+    }
+
+    function renderPhotos() {
+      $('#vizThumbs').innerHTML = st.photos.map((p, i) => `<li>
+        <img src="${p.url}" alt="${V().photo || ''} ${i + 1}">
+        <button type="button" class="viz-del" data-i="${i}" aria-label="${V().remove || ''} ${i + 1}">×</button>
+      </li>`).join('');
+      $('#vizPhotos').classList.toggle('is-full', st.photos.length >= MAX);
+    }
+    langHooks.push(renderPhotos);
+
+    $('#vizFile').addEventListener('change', async e => {
+      const picked = [...e.target.files];
+      e.target.value = '';
+      if (st.busy || !picked.length) return;
+      photoMsg.textContent = '';
+      $('#vizPhotos').classList.remove('invalid');
+      if (st.photos.length + picked.length > MAX) { photoMsg.textContent = V().max; return; }
+      if (picked.some(f => (f.type && !OK_TYPES.includes(f.type)) || f.size > MAX_SIZE)) { photoMsg.textContent = V().bad; return; }
+      photoMsg.textContent = V().prep;
+      try {
+        for (const f of picked) {
+          const blob = await shrink(f);
+          st.photos.push({ blob, url: URL.createObjectURL(blob) });
+        }
+        photoMsg.textContent = '';
+      } catch (err) {
+        photoMsg.textContent = V().unreadable;
+      }
+      dropReservation();
+      renderPhotos();
+    });
+    $('#vizThumbs').addEventListener('click', e => {
+      const b = e.target.closest('.viz-del');
+      if (!b || st.busy) return;
+      URL.revokeObjectURL(st.photos.splice(Number(b.dataset.i), 1)[0].url);
+      dropReservation();
+      renderPhotos();
+    });
+
+    function setBusy(on) {
+      st.busy = on;
+      vbtn.disabled = on;
+      vlabel.textContent = on ? V().busy : t('viz.send');
+      vf.classList.toggle('is-busy', on);
+    }
+
+    async function post(action, body, ms) {
+      const r = await fetch('/api/contact?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(ms),
+      });
+      return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+    }
+
+    const FIELD_BOX = { kind: '#vizKinds', files: '#vizPhotos' };
+    const markBox = (name, bad) => {
+      const el = FIELD_BOX[name] ? $(FIELD_BOX[name])
+        : name === 'consent' ? vf.elements.consent.closest('.consent')
+          : vf.elements[name] && vf.elements[name].closest('.field');
+      if (el) el.classList.toggle('invalid', bad);
+    };
+    ['name', 'phone', 'email', 'consent'].forEach(n => vf.elements[n].addEventListener(n === 'consent' ? 'change' : 'input', () => markBox(n, false)));
+    vf.addEventListener('change', e => {
+      if (e.target.name !== 'kind') return;
+      markBox('kind', false);
+      // Clasa dublează :has(input:checked) pentru browserele mai vechi
+      $$('.viz-kind', vf).forEach(l => l.classList.toggle('is-on', l.querySelector('input').checked));
+    });
+
+    // Răspunsul cu eroare de la server → mesajul pentru vizitator
+    function failed(r) {
+      const code = r.data.error || '';
+      if (code === 'invalid') {
+        (r.data.fields || []).forEach(n => markBox(n, true));
+        vmsg.textContent = V().err;
+      } else if (code === 'viz_off') {
+        vf.hidden = true; $('#vizOff').hidden = false;
+      } else if (code === 'turnstile') {
+        vmsg.textContent = V().robot;
+      } else if (code === 'save') {
+        vmsg.textContent = '';
+        $('#vizFallback').hidden = false;
+      } else if (code === 'expired') {
+        dropReservation(); vmsg.textContent = V().expired;
+      } else if (code === 'nofiles') {
+        st.uploaded = false; vmsg.textContent = V().upload;
+      } else if (code === 'rejected') {
+        dropReservation(); vmsg.textContent = V().rejected;
+      } else if (code === 'files') {
+        dropReservation(); vmsg.textContent = V().bad;
+      } else if (/^limit_/.test(code)) {
+        dropReservation(); vmsg.textContent = V()[code] || V().service;
+      } else {
+        vmsg.textContent = V()[code] || (r.status === 504 ? V().timeout : V().service);
+      }
+    }
+
+    function showResult(url) {
+      $('#vizImg').src = url;
+      $('#vizDownload').href = url + (url.includes('?') ? '&' : '?') + 'download=luxarch-schita';
+      $('#vizThanks').textContent = (V().thanks || '').replace('{phone}', st.phone);
+      vf.hidden = true;
+      result.hidden = false;
+      result.focus({ preventScroll: true });
+      result.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    $('#vizAgain').addEventListener('click', () => {
+      st.photos.forEach(p => URL.revokeObjectURL(p.url));
+      st.photos = [];
+      dropReservation();
+      renderPhotos();
+      vf.elements.wishes.value = '';
+      vmsg.textContent = '';
+      result.hidden = true;
+      $('#vizImg').removeAttribute('src');
+      vf.hidden = false;
+      resetTurnstile();
+      vf.elements.wishes.focus();
+    });
+
+    vf.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (st.busy) return; // dublu clic: o singură generare
+      $('#vizFallback').hidden = true;
+      const f = vf.elements;
+      const bad = {
+        kind: !f.kind.value,
+        files: !st.photos.length,
+        name: !f.name.value.trim(),
+        phone: !f.phone.value.trim(),
+        email: !!f.email.value.trim() && !f.email.checkValidity(),
+        consent: !f.consent.checked,
+      };
+      Object.entries(bad).forEach(([k, v]) => markBox(k, v));
+      if (Object.values(bad).some(Boolean)) { vmsg.textContent = bad.files && !bad.name && !bad.phone ? V().needPhoto : V().err; return; }
+      if (!st.token && !st.tsToken) { vmsg.textContent = V().robot; return; }
+
+      setBusy(true);
+      vmsg.textContent = '';
+      try {
+        // Pasul „start”: cererea în CRM, limitele, rezervarea și linkurile de încărcare
+        if (!st.token) {
+          const r = await post('viz-start', {
+            kind: f.kind.value, wishes: f.wishes.value, name: f.name.value, phone: f.phone.value, email: f.email.value,
+            consent: f.consent.checked, website: f.website.value, startedAt: vizStartedAt, lang, turnstile: st.tsToken,
+            files: st.photos.map((p, i) => ({ page: i + 1, mime: 'image/jpeg', size: p.blob.size })),
+          }, 20000);
+          resetTurnstile();
+          if (!r.ok) return failed(r);
+          if (!r.data.token) { vmsg.textContent = ''; return; } // răspunsul pentru roboți
+          st.token = r.data.token; st.uploads = r.data.uploads; st.uploaded = false; st.phone = f.phone.value.trim();
+        }
+        // Pozele merg direct în Storage, cu linkurile semnate (reîncercarea folosește aceeași rezervare)
+        if (!st.uploaded) {
+          try {
+            await Promise.all(st.uploads.map(async u => {
+              const p = st.photos[u.page - 1];
+              const up = await fetch(u.url, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: p.blob });
+              if (!up.ok) throw new Error('upload');
+            }));
+          } catch (err) {
+            vmsg.textContent = V().upload;
+            return;
+          }
+          st.uploaded = true;
+        }
+        // Pasul „generate”: serverul are 60 s; dacă pagina se închide, schița ajunge oricum pe fișă
+        const g = await post('viz-generate', { token: st.token }, 75000);
+        if (g.ok && g.data.url) return showResult(g.data.url);
+        failed(g);
+      } catch (err) {
+        // Rețeaua a căzut sau răspunsul a întârziat: reîncercarea întoarce schița, dacă s-a terminat între timp
+        vmsg.textContent = st.token ? V().timeout : V().service;
+      } finally {
+        setBusy(false);
+      }
+    });
+  })();
+
   $('#year').textContent = new Date().getFullYear();
 
   if (!anim) return;

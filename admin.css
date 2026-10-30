@@ -519,3 +519,39 @@ html.is-tg {
   .is-tg .reject-dialog { max-height: calc(100dvh - var(--tg-top) - var(--tg-bottom) - 24px); overflow-y: auto; }
 }
 .fin-filters-1 { grid-template-columns: minmax(0, 280px); }
+
+/* ==========================================================
+   Vizualizări (schițe generate cu Gemini): fișa clientului, lista generală, dialogurile
+   ========================================================== */
+.viz-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; margin: 4px 0 12px; }
+.viz-item { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.viz-thumb { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg-2); cursor: pointer; }
+.viz-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.viz-thumb:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+.viz-noimg { display: grid; place-items: center; height: 100%; color: var(--ink-2); font-weight: 600; }
+.viz-tag { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 3px 9px; border-radius: 999px; background: rgba(28, 24, 20, .78); color: #fff; font-size: .72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viz-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: .92rem; }
+.viz-meta .muted { font-size: .84rem; }
+.viz-wishes { font-size: .86rem; color: var(--ink-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+#vizViewWishes { display: block; -webkit-line-clamp: unset; }
+.viz-box > .btn { margin-top: 2px; }
+.viz-filter { margin: 12px 0 16px; }
+.viz-shot { position: relative; margin: 0; border-radius: 14px; overflow: hidden; background: var(--bg-2); border: 1px solid var(--line); }
+.viz-shot img { display: block; width: 100%; height: auto; min-height: 120px; max-height: 70vh; object-fit: contain; background: var(--bg-2); }
+.viz-shot figcaption { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 5px 11px; border-radius: 999px; background: rgba(28, 24, 20, .8); color: #fff; font-size: .78rem; font-weight: 600; line-height: 1.35; }
+.viz-inputs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.viz-inputs .admin-label { width: 100%; }
+.viz-dialog.is-wide { width: min(900px, 100% - 24px); }
+.detail-danger { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); text-align: right; }
+@media (max-width: 600px) {
+  .viz-items { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .viz-meta { font-size: .86rem; }
+  .detail-danger { text-align: left; }
+}
+@media (max-width: 360px) {
+  .viz-items { grid-template-columns: 1fr; }
+}
+/* Mini App pe telefon: dialogurile vizualizărilor pe tot ecranul, ca scanerul */
+@media (max-width: 700px) {
+  .is-tg .viz-dialog, .is-tg .viz-dialog.is-wide { width: 100%; max-width: 100%; }
+}

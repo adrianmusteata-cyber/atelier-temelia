@@ -82,6 +82,7 @@
         <a href="#servicii" data-i18n="nav.services"><i>02</i>Servicii</a>
         <a href="#proiecte" data-i18n="nav.projects"><i>03</i>Proiecte</a>
         <a href="#proces" data-i18n="nav.process"><i>04</i>Proces</a>
+        <a href="#vizualizare" data-i18n="nav.viz"><i>✦</i>Vizualizare</a>
         <a href="#contact" data-i18n="nav.contact"><i>05</i>Contact</a>
       </nav>
       <div class="nav-actions">
@@ -328,6 +329,77 @@
             </div></div></li>
           <li class="step" data-anim="up"><span class="step-num">05</span><div><h3 data-i18n="proc.5t">Pe șantier</h3><p data-i18n="proc.5p">Asistență tehnică și verificări pe faze determinante, până la recepție.</p></div></li>
         </ol>
+      </div>
+    </section>
+
+    <!-- ============ VIZUALIZARE PROIECT (schiță generată pe server de serviciul de imagini: Cloudflare Workers AI sau Gemini) ============ -->
+    <section class="viz section" id="vizualizare">
+      <div class="wrap viz-grid">
+        <div class="viz-copy">
+          <p class="eyebrow" data-anim="fade" data-i18n="viz.eyebrow">Vizualizare proiect</p>
+          <h2 class="split-title" data-i18n="viz.title">Vedeți-vă <em>viitoarea casă</em></h2>
+          <p class="lead" data-anim="fade" data-i18n="viz.lead">Încărcați 1–3 poze și scrieți ce vă doriți. Primiți o schiță orientativă în ~30 de secunde.</p>
+          <ol class="viz-how" data-anim="up">
+            <li><i>01</i><span data-i18n="viz.how1">Fotografiați terenul, fațada sau camera</span></li>
+            <li><i>02</i><span data-i18n="viz.how2">Scrieți pe scurt ce vă doriți</span></li>
+            <li><i>03</i><span data-i18n="viz.how3">Primiți schița, iar noi vă contactăm pentru proiect</span></li>
+          </ol>
+        </div>
+
+        <div class="viz-side" data-anim="up">
+          <!-- Până răspunde serverul (sau dacă generarea nu e configurată): trimitere spre formularul obișnuit -->
+          <div class="viz-off" id="vizOff">
+            <p data-i18n="viz.off">Vizualizarea e temporar indisponibilă. Lăsați o cerere și vă contactăm.</p>
+            <a class="btn btn-ghost btn-sm" href="#contact" data-i18n="viz.offBtn">Lasă o cerere</a>
+          </div>
+
+          <form class="contact-form viz-form" id="vizForm" novalidate hidden>
+            <fieldset class="field full viz-kinds" id="vizKinds">
+              <legend data-i18n="viz.kind">Ce vizualizăm</legend>
+              <label class="viz-kind"><input type="radio" name="kind" value="casa_noua" required> <span data-i18n="viz.k1">Casă nouă pe teren</span></label>
+              <label class="viz-kind"><input type="radio" name="kind" value="fatada"> <span data-i18n="viz.k2">Fațadă / renovare exterior</span></label>
+              <label class="viz-kind"><input type="radio" name="kind" value="interior"> <span data-i18n="viz.k3">Interior</span></label>
+            </fieldset>
+            <div class="field full viz-photos" id="vizPhotos">
+              <span class="viz-label" data-i18n="viz.photos">Poze (1–3)</span>
+              <label class="btn btn-ghost btn-sm viz-pick">
+                <input type="file" id="vizFile" accept="image/jpeg,image/png,image/webp" multiple>
+                <span data-i18n="viz.pick">Alegeți pozele</span>
+              </label>
+              <span class="viz-hint" data-i18n="viz.photosHint">JPG, PNG sau WEBP, până la 10 MB fiecare</span>
+              <ul class="viz-thumbs" id="vizThumbs"></ul>
+              <p class="viz-photo-msg" id="vizPhotoMsg" role="status"></p>
+            </div>
+            <div class="field full"><label for="v-wishes" data-i18n="viz.wishes">Ce vă doriți</label><textarea id="v-wishes" name="wishes" rows="3" maxlength="1000" data-i18n-ph="viz.wishesPh" placeholder="de exemplu: casă cu un etaj, acoperiș plat, lemn și piatră"></textarea></div>
+            <div class="field"><label for="v-name" data-i18n="f.name">Nume</label><input id="v-name" name="name" required maxlength="100" autocomplete="name"></div>
+            <div class="field"><label for="v-phone" data-i18n="f.phone">Telefon</label><input id="v-phone" name="phone" type="tel" required maxlength="30" autocomplete="tel"></div>
+            <div class="field full"><label for="v-email" data-i18n="viz.email">Email (opțional)</label><input id="v-email" name="email" type="email" maxlength="150" autocomplete="email"></div>
+            <div class="hp" aria-hidden="true"><label for="v-website">Website</label><input id="v-website" name="website" tabindex="-1" autocomplete="off"></div>
+            <label class="consent full"><input type="checkbox" name="consent" required> <span data-i18n="viz.consent">Sunt de acord ca pozele și datele mele să fie prelucrate pentru generarea schiței (de un serviciu extern de generare a imaginilor) și păstrate împreună cu cererea mea. <a href="confidentialitate">Politica de confidențialitate</a></span></label>
+            <div class="full viz-ts" id="vizTs"></div>
+            <button class="btn btn-lux full" type="submit" id="vizSend"><span id="vizSendLabel" data-i18n="viz.send">Generează schița</span> <span class="arrow" aria-hidden="true">→</span></button>
+            <p class="form-msg full" id="vizMsg" role="status" aria-live="polite"></p>
+            <div class="form-fallback full" id="vizFallback" hidden>
+              <p data-i18n="f.fail">Nu am putut trimite cererea. Scrieți-ne direct:</p>
+              <div class="fallback-actions">
+                <a class="btn btn-lux btn-sm" href="https://wa.me/37368133945" target="_blank" rel="noopener" data-i18n="f.waSend">Trimite pe WhatsApp</a>
+                <a class="btn btn-ghost btn-sm" href="tel:+37368133945" data-i18n="f.call">Sună</a>
+              </div>
+            </div>
+          </form>
+
+          <div class="viz-result" id="vizResult" tabindex="-1" hidden>
+            <figure class="viz-figure">
+              <img id="vizImg" alt="Schiță orientativă" data-i18n-alt="viz.label">
+              <figcaption data-i18n="viz.label">Schiță orientativă generată automat, nu e proiect</figcaption>
+            </figure>
+            <p class="viz-thanks" id="vizThanks"></p>
+            <div class="fallback-actions">
+              <a class="btn btn-lux btn-sm" id="vizDownload" href="#" download="luxarch-schita" data-i18n="viz.download">Descarcă</a>
+              <button type="button" class="btn btn-ghost btn-sm" id="vizAgain" data-i18n="viz.again">Încă o vizualizare</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

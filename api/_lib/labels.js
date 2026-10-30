@@ -35,6 +35,7 @@ const SOURCES = {
   chestionar: 'Chestionar',
   document: 'Document',
   telegram: 'Telegram', // client adăugat din Mini App Telegram (proprietar sau angajat)
+  vizualizare: 'Site, vizualizare', // cererea lăsată din formularul „Vedeți-vă viitoarea casă” (schiță cu Gemini)
 };
 
 // Tipurile de documente recunoscute de Claude; `ready` = secțiunea de destinație există deja

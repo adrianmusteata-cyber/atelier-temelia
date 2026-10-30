@@ -33,6 +33,21 @@ function telegramText(d, createdAt = new Date(), adminLink = false) {
   return lines.join('\n');
 }
 
+/* Cererea din formularul „Vedeți-vă viitoarea casă”: anunțul obișnuit plus rândul despre schiță
+   („schița e pe fișă” sau „nu s-a generat: <motiv>”). d = cererea salvată (cu id) sau datele din formular, dacă baza nu răspunde. */
+function vizText(d, line, createdAt = d.created_at || new Date()) {
+  const lines = [
+    '<b>🏠 Cerere nouă de pe site: vizualizare proiect</b>',
+    '',
+    ...rows(d).map(([k, v]) => `<b>${k}:</b> ${v}`),
+    `<b>Vizualizare proiect:</b> ${esc(line)}`,
+    '',
+    `<i>Limba: ${String(d.lang || 'ro').toUpperCase()} · ${when(createdAt)} (ora Chișinăului)</i>`,
+  ];
+  if (d.id) lines.push('', `<a href="${SITE}/admin?id=${d.id}">Deschide fișa clientului</a>`);
+  return lines.join('\n');
+}
+
 // Client adăugat manual din panou; din Mini App titlul spune și cine l-a adăugat
 function manualClientText(r) {
   const fromTg = r.source === 'telegram'
@@ -132,5 +147,5 @@ async function sendOwnerEmail(d, createdAt = new Date()) {
 
 module.exports = {
   telegramText, sendTelegram, sendOwnerEmail, emailConfigured,
-  manualClientText, paymentText, isPayment, sendPayment, notifySafely,
+  manualClientText, vizText, paymentText, isPayment, sendPayment, notifySafely,
 };

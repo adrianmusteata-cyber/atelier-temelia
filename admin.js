@@ -87,7 +87,7 @@
     (empty ? `<option value="">${esc(empty)}</option>` : '') +
     Object.entries(map).map(([k, l]) => `<option value="${k}"${k === selected ? ' selected' : ''}>${esc(l)}</option>`).join('');
 
-  const views = { login: $('#view-login'), tg: $('#view-tg'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail'), fin: $('#view-fin'), dues: $('#view-dues'), cat: $('#view-cat') };
+  const views = { login: $('#view-login'), tg: $('#view-tg'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail'), fin: $('#view-fin'), dues: $('#view-dues'), cat: $('#view-cat'), viz: $('#view-viz') };
   let current = '';
   function show(name) {
     current = name;
@@ -95,13 +95,17 @@
     Object.entries(views).forEach(([k, el]) => { el.hidden = k !== name; });
     $('#logout').hidden = out || inTg; // în Telegram nu există sesiune cu parolă
     $('#docBtn').hidden = out;
-    $('#barNav').hidden = out || role !== 'owner'; // secțiunile cu bani: doar proprietarul
+    // Antetul: CRM și Vizualizări pentru toți; secțiunile cu bani și „Vezi ca angajat” doar pentru proprietar
+    $('#barNav').hidden = out;
+    $('#barNav').querySelectorAll('a[data-sec="fin"], a[data-sec="dues"], a[data-sec="cat"]').forEach(a => { a.hidden = role !== 'owner'; });
+    $('#viewAsBtn').hidden = role !== 'owner' || !viewAsOk;
     $('#previewBand').hidden = out || !preview;
-    const sec = ['fin', 'dues', 'cat'].includes(name) ? name : 'crm';
+    const sec = ['fin', 'dues', 'cat', 'viz'].includes(name) ? name : 'crm';
     $('#barNav').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.sec === sec));
     if (name === 'fin') document.title = 'Financiar — LUXARCH';
     if (name === 'dues') document.title = 'Scadențe — LUXARCH';
     if (name === 'cat') document.title = 'Catalog — LUXARCH';
+    if (name === 'viz') document.title = 'Vizualizări — LUXARCH';
     $('#toolbar').hidden = name !== 'board' && name !== 'list';
     $('#main').classList.toggle('is-wide', name === 'board');
     $('#viewSwitch').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.view === name));
@@ -132,7 +136,7 @@
     return data;
   }
 
-  const clearScreens = () => { $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = ''; $('#fin').innerHTML = ''; $('#cat').innerHTML = ''; };
+  const clearScreens = () => { $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = ''; $('#fin').innerHTML = ''; $('#cat').innerHTML = ''; $('#vizList').innerHTML = ''; };
 
   // Orice 401 golește ecranul și cere parola din nou (în Telegram: ecranul cu motivul, fără parolă)
   function onError(err, fallback) {
@@ -253,7 +257,8 @@
     location.replace('/admin');
   }
   // Fără sessionStorage alegerea nu ar supraviețui reîncărcării: butonul nu apare
-  if (!storeViewAs(viewAsStaff)) $('#viewAsBtn').hidden = true;
+  const viewAsOk = storeViewAs(viewAsStaff);
+  if (!viewAsOk) $('#viewAsBtn').hidden = true;
   $('#viewAsBtn').addEventListener('click', () => switchView(true));
   $('#previewExit').addEventListener('click', () => switchView(false));
 
@@ -272,6 +277,7 @@
     if (p.get('fin')) { ++loadSeq; window.LUXFIN.route(p); }
     else if (p.get('due')) { ++loadSeq; window.LUXDUES.route(p); }
     else if (p.get('cat')) { ++loadSeq; window.LUXCAT.route(p); }
+    else if (p.get('viz')) { ++loadSeq; window.LUXVIZ.route(p); } // și angajatul
     else if (p.get('id')) loadDetail(p.get('id'));
     else if (p.get('new')) showNew();
     else if (p.get('view') === 'list') loadList(true);
@@ -690,6 +696,7 @@
             <dt>Servicii</dt><dd>${label(SERVICES, r.service)}</dd>
             ${docs.length ? `<dt>Documente</dt><dd><ul class="doc-links">${docs.map(d =>
               `<li><button class="link-btn" type="button" data-doc="${esc(d.id)}">${esc(docName(d))}</button></li>`).join('')}</ul></dd>` : ''}
+            <dt>Vizualizări</dt><dd class="viz-box" id="vizBox"></dd>
             ${r.source === 'site' || r.message ? `<dt>Despre proiect</dt><dd class="detail-msg">${r.message ? esc(r.message) : '—'}</dd>` : ''}
             <dt><label for="notes">Note</label></dt>
             <dd>
@@ -728,9 +735,12 @@
             </dd>`}
             <dt>Istoric etape</dt><dd><ol class="history" id="history">${historyHtml(hist)}</ol></dd>
           </dl>
+          ${isStaff() ? '' : '<div class="detail-danger"><button class="link-btn danger" type="button" id="delClient">Șterge clientul</button></div>'}
         </article>`;
       const moveTo = bindStatus(r);
       bindNotes(r);
+      window.LUXVIZ.box($('#vizBox'), r.id, r.name);
+      if (!isStaff()) bindDelete(r);
       // Angajatul nu are plăți și rate (serverul nici nu le trimite)
       if (!isStaff()) bindPayments(r, pays || [], moveTo);
     } catch (err) {
@@ -744,6 +754,23 @@
         if (retry) retry.onclick = () => loadDetail(id);
       });
     }
+  }
+
+  // Ștergerea clientului (doar proprietarul): serverul șterge întâi fișierele (documente, vizualizări), apoi rândul
+  function bindDelete(r) {
+    $('#delClient').addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      if (!confirm(`Ștergi clientul „${r.name}” cu istoricul, plățile, ratele, documentele și vizualizările lui? Nu se poate anula.`)) return;
+      btn.disabled = true;
+      try {
+        await api('/api/admin/requests/' + encodeURIComponent(r.id), { method: 'DELETE' });
+        boardItems.delete(r.id);
+        go(backQs(), true);
+      } catch (err) {
+        btn.disabled = false;
+        onError(err, () => alert('Clientul nu s-a șters. Încercați din nou.'));
+      }
+    });
   }
 
   function bindStatus(r) {
@@ -1306,10 +1333,11 @@
   });
 
   // Ajutoarele comune pentru secțiunea Financiar (admin-fin.js)
-  const helpers = { $, esc, num, money, parseMoney, today, api, onError, go, internal, show, options, fmtDay, fmtPayDay, DOC_TYPES, openDoc };
+  const helpers = { $, esc, num, money, parseMoney, today, api, onError, go, internal, show, options, fmtDay, fmtPayDay, DOC_TYPES, openDoc, inTg, syncBack };
   window.LUXFIN.init(helpers);
   window.LUXDUES.init(helpers);
   window.LUXCAT.init(helpers);
+  window.LUXVIZ.init(helpers);
 
   // Închiderea fără salvare: fișierele temporare se șterg
   ['#docClose', '#docCancel', '#docUnsupportedClose', '#docDoneClose'].forEach(s => $(s).addEventListener('click', () => dlg.close()));

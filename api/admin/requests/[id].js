@@ -5,7 +5,10 @@
          La schimbarea etapei, status_actor = „@username” (sau numele) din initData verificat; din browser ''.
          Trigger-ul îl copiază în status_history.actor. Notele nu cer autor.
    Angajatul (Mini App Telegram): fișa fără bani (fără valoare, monedă, plăți, rate și documentele ratelor);
-   la PATCH doar status, comment și notes — contract_value sau currency → 403, fără nicio salvare. */
+   la PATCH doar status, comment și notes — contract_value sau currency → 403, fără nicio salvare.
+   DELETE /api/admin/requests/:id — doar proprietarul: șterge clientul cu tot ce ține de el. Fișierele din Storage
+         (vizualizările, originalele documentelor, documentele ratelor) se șterg ÎNAINTE de rând; rândurile legate
+         (istoric, plăți, rate, documente, generări) dispar prin „on delete cascade”. Angajatul → 403. */
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin, actorOf } = require('../../_lib/auth');
@@ -14,6 +17,8 @@ const { CURRENCIES, parseAmount } = require('../../_lib/money');
 const { paymentText, isPayment, sendPayment, notifySafely } = require('../../_lib/notify');
 const { receivablesWithState } = require('../../_lib/dues');
 const { stripMoney } = require('../../_lib/staff');
+const store = require('../../_lib/storage');
+const { filesOfRequest } = require('../../_lib/imagegen');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -27,8 +32,27 @@ const payments = id => rest(`payments?select=id,paid_on,amount,note&request_id=e
 // Originalele (carte de vizită, chestionar); dacă tabelul încă lipsește, fișa merge și fără ele
 const documents = id => rest(`documents?select=id,doc_type,page,mime,created_at&request_id=eq.${id}&order=page.asc`).catch(() => []);
 
+// Ștergerea clientului: întâi fișierele, apoi rândul (dacă Storage nu răspunde, clientul rămâne, fără fișiere „orfane”)
+async function removeRequest(id, res) {
+  const [item] = await rest(`requests?select=id&id=eq.${id}`);
+  if (!item) return res.status(404).json({ ok: false, error: 'notfound' });
+  const groups = [...new Set((await rest(`receivables?select=group_id&request_id=eq.${id}`).catch(() => []))
+    .map(r => r.group_id).filter(Boolean))];
+  const groupFilter = groups.length ? `receivable_group=in.(${groups.join(',')})` : '';
+  const [docs, groupDocs, vizFiles] = await Promise.all([
+    rest(`documents?select=path&request_id=eq.${id}`).catch(() => []),
+    groupFilter ? rest(`documents?select=path&${groupFilter}`).catch(() => []) : [],
+    filesOfRequest(id),
+  ]);
+  await store.remove([...docs, ...groupDocs].map(d => d.path).concat(vizFiles));
+  // Documentele ratelor sunt legate de grup, nu de client: nu au cascadă, se șterg aici
+  if (groupFilter) await rest(`documents?${groupFilter}`, { method: 'DELETE' });
+  await rest(`requests?id=eq.${id}`, { method: 'DELETE' });
+  return res.status(200).json({ ok: true });
+}
+
 module.exports = async function handler(req, res) {
-  if (!allow(req, res, ['GET', 'PATCH'])) return;
+  if (!allow(req, res, ['GET', 'PATCH', 'DELETE'])) return;
   const role = requireAdmin(req, res, { staff: true });
   if (!role) return;
   const staff = role === 'staff';
@@ -37,6 +61,10 @@ module.exports = async function handler(req, res) {
   if (!UUID_RE.test(id)) return res.status(404).json({ ok: false, error: 'notfound' });
 
   try {
+    if (req.method === 'DELETE') {
+      if (staff) return res.status(403).json({ ok: false, error: 'forbidden' });
+      return await removeRequest(id, res);
+    }
     if (req.method === 'GET' && staff) {
       // Doar ce ține de pâlnie: datele clientului, istoricul și originalele legate direct de el
       const [[item], hist, docs] = await Promise.all([rest(`requests?select=*&id=eq.${id}`), history(id), documents(id)]);

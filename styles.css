@@ -318,6 +318,59 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
 .form-done p { color: var(--mute); max-width: 42ch; font-size: 1.05rem; }
 
 /* ==========================================================
+   VIZUALIZARE PROIECT (schiță generată pe server cu Gemini)
+   ========================================================== */
+.viz { position: relative; border-top: 1px solid var(--line); }
+.viz-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(40px, 6vw, 110px); align-items: start; }
+.viz-grid > * { min-width: 0; }
+.viz h2 { font-size: clamp(2.6rem, 6vw, 6rem); margin: 26px 0 22px; }
+.viz-how { margin-top: 36px; display: grid; gap: 0; }
+.viz-how li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); color: var(--mute); }
+.viz-how i { font-style: normal; font-size: .74rem; font-weight: 600; letter-spacing: .16em; color: var(--lux); padding-top: 4px; }
+.viz-off {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+  padding: clamp(24px, 4vw, 44px); border-radius: 28px; background: rgba(239, 232, 220, .035); border: 1px solid var(--line); color: var(--mute);
+}
+.viz-off[hidden], .viz-result[hidden] { display: none; }
+.viz-kinds { border: 0; min-width: 0; display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+.viz-kinds legend, .viz-label { font-size: .72rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; padding: 0; }
+.viz-kinds legend { float: left; width: 100%; }
+.viz-kind { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 10px 16px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(239, 232, 220, .25); font-size: .9rem; cursor: pointer; max-width: 100%; transition: box-shadow .3s, background .3s, color .3s; }
+.viz-kind input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.viz-kind.is-on, .viz-kind:has(input:checked) { background: var(--lux); color: var(--bg); box-shadow: none; }
+.viz-kind:has(input:focus-visible) { outline: 2px solid var(--lux); outline-offset: 3px; }
+.viz-kinds.invalid .viz-kind { box-shadow: inset 0 0 0 1px var(--err); }
+.viz-kinds.invalid legend, .viz-photos.invalid .viz-label { color: var(--err); }
+.viz-photos { align-items: flex-start; }
+.viz-pick { position: relative; overflow: hidden; cursor: pointer; }
+.viz-pick input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.viz-photos.is-full .viz-pick { display: none; }
+.viz-photos.invalid .viz-pick { box-shadow: inset 0 0 0 1px var(--err); }
+.viz-hint { font-size: .8rem; color: var(--dim); }
+.viz-thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+.viz-thumbs:empty { display: none; }
+.viz-thumbs li { position: relative; width: 92px; height: 92px; }
+.viz-thumbs img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
+.viz-del { position: absolute; top: -8px; right: -8px; width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 1.2rem; line-height: 1; display: grid; place-items: center; }
+.viz-photo-msg { font-size: .86rem; color: var(--lux-2); min-height: 0; }
+.viz-photo-msg:empty { display: none; }
+.viz-ts { min-height: 65px; max-width: 100%; overflow: hidden; }
+.viz-form.is-busy .viz-pick, .viz-form.is-busy .viz-del { pointer-events: none; opacity: .5; }
+.viz-result {
+  display: flex; flex-direction: column; gap: 18px; outline: none;
+  padding: clamp(16px, 3vw, 32px); border-radius: 28px;
+  background: linear-gradient(160deg, rgba(233, 184, 114, .14), rgba(239, 232, 220, .03) 60%); border: 1px solid rgba(233, 184, 114, .45);
+}
+.viz-figure { position: relative; border-radius: 18px; overflow: hidden; background: var(--bg-3); }
+.viz-figure img { width: 100%; height: auto; }
+.viz-figure figcaption {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; width: fit-content; max-width: calc(100% - 20px);
+  padding: 6px 12px; border-radius: 999px; background: rgba(13, 11, 9, .78); color: var(--ink);
+  font-size: .78rem; font-weight: 600; letter-spacing: .02em; line-height: 1.35;
+}
+.viz-thanks { color: var(--ink); font-size: 1.05rem; }
+
+/* ==========================================================
    FOOTER + WHATSAPP
    ========================================================== */
 .footer { padding: clamp(40px, 6vw, 80px) 0 34px; border-top: 1px solid var(--line); overflow: hidden; }
@@ -376,6 +429,14 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
   .nav-links { gap: 18px; font-size: .84rem; }
   .nav-links a i { display: none; }
 }
+/* Cu „Vizualizare” în meniu, pe calculatoarele înguste butonul „Cere o ofertă” din antet nu mai încape (rămâne în Hero) */
+@media (min-width: 1024px) and (max-width: 1339.98px) {
+  .nav-cta { display: none; }
+}
+/* Între 1340 și 1440 px butonul rămâne, cu linkurile puțin mai strânse (măsurat în RU, textele cele mai lungi) */
+@media (min-width: 1340px) and (max-width: 1439.98px) {
+  .nav-links { gap: 20px; }
+}
 
 @media (max-width: 1023.98px) {
   .nav-links {
@@ -392,7 +453,7 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
   .burger { display: block; }
   .nav-cta { display: none; }
 
-  .svc-list, .faq-grid, .contact-grid, .manifest-cols { grid-template-columns: 1fr; }
+  .svc-list, .faq-grid, .contact-grid, .manifest-cols, .viz-grid { grid-template-columns: 1fr; }
   .hero-media { height: 70vh; height: 70svh; }
 }
 
@@ -416,6 +477,9 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
   .steps::before, .steps::after { left: 21px; }
   .countries { grid-template-columns: 1fr; }
   .contact-form { grid-template-columns: 1fr; }
+  .viz-form { padding: 20px 16px; }
+  .viz-kind { flex: 1 1 100%; }
+  .viz-how li { grid-template-columns: 36px 1fr; }
   .contact-list li { grid-template-columns: 1fr; gap: 2px; }
   .contact-list a { display: inline-block; padding: 4px 0; }
   .faq-list summary { padding-right: 44px; }

@@ -14,7 +14,16 @@
    Angajatul (Mini App Telegram): citește și salvează doar cărți de vizită, chestionare, avize și chitanțe.
    Celelalte tipuri → { supported: false, reason: 'owner_only' } la read (fără citire dacă tipul e ales de el)
    și 403 owner_only la save; duplicatele cheltuielilor vin fără sumă și fără id; open doar pentru documentele clienților.
-   Din Telegram, clientul creat dintr-un document primește created_by (autorul din initData verificat). */
+   Din Telegram, clientul creat dintr-un document primește created_by (autorul din initData verificat).
+   Vizualizare proiect (schiță cu Cloudflare Workers AI sau Gemini, vezi _lib/imagegen.js), pentru proprietar și angajat, în browser și în Mini App:
+   POST /api/admin/docs/viz-upload   { files: [{ page, mime, size }], request_id?, kind? } → { token, uploads }
+        — rezervă o generare (5 pe zi de om: tg:<id> sau „owner” din browser) și dă linkurile spre tmp/<token>/
+   POST /api/admin/docs/viz-generate { token, kind, wishes } → { id, url, model } (link de 5 minute)
+        — 504 timeout / 502 service: se poate încerca din nou cu același token cât rezervarea e valabilă (15 minute)
+   POST /api/admin/docs/viz-cancel   { token } — renunțarea înainte de generare: pozele se șterg, rezervarea nu se mai numără
+   GET  /api/admin/docs/viz-list?request_id=<id> | ?general=1 [&mine=1] → { items, used, limit, enabled, max_side, model }
+   GET  /api/admin/docs/viz-open?id=<generare>&what=output|input-<n> → { url } (5 minute)
+   POST /api/admin/docs/viz-delete   { id } — rândul și fișierele; angajatul șterge doar generările lui */
 const crypto = require('crypto');
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
@@ -27,6 +36,7 @@ const expenses = require('../../_lib/expenses');
 const dues = require('../../_lib/dues');
 const catalog = require('../../_lib/catalog');
 const { STAFF_DOC_TYPES, expenseDupes } = require('../../_lib/staff');
+const viz = require('../../_lib/imagegen');
 
 // Tipurile care devin cheltuieli; restul (carte de vizită, chestionar) devin clienți în CRM
 const EXPENSE_TYPES = ['aviz', 'chitanta'];
@@ -344,9 +354,154 @@ async function open(req, res, staff) {
   return res.status(200).json({ ok: true, url: await store.signRead(doc.path, 300) });
 }
 
+/* ---------- Vizualizare proiect (echipa) ---------- */
+
+// Cheia limitei și autorul: omul din Mini App (initData verificat) sau proprietarul din browser
+const teamKey = req => (req.tgUser ? `tg:${req.tgUser.id}` : 'owner');
+const teamActor = req => actorOf(req) || 'owner';
+const VIZ_SECONDS = 300;
+
+async function vizUpload(req, body, res) {
+  if (!viz.configured()) return res.status(503).json({ ok: false, error: 'viz_off' });
+  if (!viz.validFiles(body.files)) return res.status(400).json({ ok: false, error: 'files' });
+  let requestId = null;
+  if (body.request_id) {
+    requestId = String(body.request_id);
+    if (!UUID_RE.test(requestId)) return res.status(404).json({ ok: false, error: 'notfound' });
+    const [r] = await rest(`requests?select=id&id=eq.${requestId}`);
+    if (!r) return res.status(404).json({ ok: false, error: 'notfound' });
+  }
+  const key = teamKey(req);
+  if (await viz.teamLimit(key)) return res.status(429).json({ ok: false, error: 'limit_team', limit: viz.TEAM_PER_DAY });
+  const kind = viz.KINDS[body.kind] ? body.kind : 'casa_noua';
+  const r = await viz.reserve({ origin: 'team', kind, request_id: requestId, actor: teamActor(req), actor_key: key, files: body.files });
+  if (Math.random() < 0.1) await viz.sweep().catch(e => console.error('Curățarea vizualizărilor a eșuat:', e.message));
+  return res.status(200).json({ ok: true, token: r.token, uploads: r.uploads, max_side: viz.maxSide() });
+}
+
+// Rezervarea omului care cere (a altcuiva = „nu există”)
+async function ownReservation(req, body, res) {
+  const token = String(body.token || '');
+  if (!UUID_RE.test(token)) { res.status(400).json({ ok: false, error: 'token' }); return null; }
+  const row = await viz.findByToken(token);
+  if (!row || row.origin !== 'team' || row.actor_key !== teamKey(req)) { res.status(404).json({ ok: false, error: 'notfound' }); return null; }
+  return row;
+}
+
+async function vizGenerate(req, body, res) {
+  const started = Date.now();
+  if (!viz.configured()) return res.status(503).json({ ok: false, error: 'viz_off' });
+  const kind = String(body.kind || '');
+  const wishes = str(body.wishes);
+  if (!viz.KINDS[kind]) return res.status(400).json({ ok: false, error: 'kind' });
+  if (wishes.length > viz.MAX_WISHES) return res.status(400).json({ ok: false, error: 'wishes' });
+  const row = await ownReservation(req, body, res);
+  if (!row) return;
+  // Dublu clic după o reușită: aceeași schiță
+  if (row.status === 'done') return res.status(200).json({ ok: true, id: row.id, url: await store.signRead(row.output_path, VIZ_SECONDS), model: row.model });
+  if (row.status === 'rejected') return res.status(422).json({ ok: false, error: 'rejected' });
+  if (viz.isExpired(row)) return res.status(410).json({ ok: false, error: 'expired' });
+  if (row.status === 'pending' && row.started_at) return res.status(409).json({ ok: false, error: 'busy' });
+  if (!(await viz.tryHit(teamKey(req)))) return res.status(429).json({ ok: false, error: 'limit_tries' });
+
+  const { files, error } = await viz.tmpFiles(row.token);
+  if (error) return res.status(400).json({ ok: false, error: 'files' });
+  if (!files.length) return res.status(409).json({ ok: false, error: 'nofiles' });
+  // „Încearcă din nou” după un eșec: eșecul nu se număra, deci limita zilei se verifică din nou
+  if (row.status === 'failed' && await viz.teamLimit(row.actor_key)) {
+    return res.status(429).json({ ok: false, error: 'limit_team', limit: viz.TEAM_PER_DAY });
+  }
+  const claimed = await viz.claim(row, { kind, wishes });
+  if (!claimed) return res.status(409).json({ ok: false, error: 'busy' });
+
+  const out = await viz.run(claimed, files, started);
+  if (out.status === 'done') {
+    return res.status(200).json({ ok: true, id: out.row.id, url: await store.signRead(out.row.output_path, VIZ_SECONDS), model: out.model });
+  }
+  if (out.status === 'rejected') return res.status(422).json({ ok: false, error: 'rejected' });
+  // Detaliul (fără cheie) îl vede echipa, ca să se poată afla cauza fără jurnalele Vercel
+  return res.status(out.code === 'timeout' ? 504 : out.code === 'quota' ? 503 : 502).json({ ok: false, error: out.code, detail: out.detail || '' });
+}
+
+async function vizCancel(req, body, res) {
+  const row = await ownReservation(req, body, res);
+  if (!row) return;
+  if (row.status === 'pending' && !row.started_at) {
+    await rest(`generations?id=eq.${row.id}&status=eq.pending&started_at=is.null`, {
+      method: 'PATCH', body: { status: 'failed', error: 'anulat', token: null }, prefer: 'return=minimal',
+    });
+    await viz.dropTmp(row.token);
+  } else if (row.status === 'failed') {
+    await rest(`generations?id=eq.${row.id}&status=eq.failed`, { method: 'PATCH', body: { token: null }, prefer: 'return=minimal' });
+    await viz.dropTmp(row.token);
+  }
+  return res.status(200).json({ ok: true });
+}
+
+// Angajatul vede tot ce vede pe fișe (toți clienții) și toată lista generală; fără bani, deci nimic de ascuns
+async function vizList(req, res, staff) {
+  const key = teamKey(req);
+  let filter;
+  if (req.query.request_id) {
+    const id = String(req.query.request_id);
+    if (!UUID_RE.test(id)) return res.status(404).json({ ok: false, error: 'notfound' });
+    filter = `request_id=eq.${id}`;
+  } else if (req.query.general) {
+    filter = 'request_id=is.null';
+  } else {
+    return res.status(400).json({ ok: false, error: 'filter' });
+  }
+  if (req.query.mine) filter += `&actor_key=eq.${encodeURIComponent(key)}`;
+  const [rows, used] = await Promise.all([
+    rest(`generations?select=id,created_at,request_id,origin,kind,wishes,actor,actor_key,output_path,input_paths&status=eq.done&${filter}&order=created_at.desc&limit=60`),
+    viz.teamUsed(key),
+  ]);
+  const urls = await store.signReadMany(rows.map(r => r.output_path).filter(Boolean), VIZ_SECONDS).catch(() => ({}));
+  const items = rows.map(r => ({
+    id: r.id, created_at: r.created_at, origin: r.origin, kind: r.kind, wishes: r.wishes, actor: r.actor,
+    inputs: (r.input_paths || []).length, thumb: urls[r.output_path] || '',
+    can_delete: !staff || r.actor_key === key,
+  }));
+  return res.status(200).json({ ok: true, enabled: viz.configured(), items, used, limit: viz.TEAM_PER_DAY, max_side: viz.maxSide(), model: viz.modelName() });
+}
+
+async function vizOpen(req, res) {
+  const id = String(req.query.id || ''), what = String(req.query.what || 'output');
+  if (!UUID_RE.test(id) || !/^(output|input-[1-3])$/.test(what)) return res.status(404).json({ ok: false, error: 'notfound' });
+  const [row] = await rest(`generations?select=output_path,input_paths&id=eq.${id}&status=eq.done`);
+  if (!row) return res.status(404).json({ ok: false, error: 'notfound' });
+  const path = what === 'output' ? row.output_path
+    : (row.input_paths || []).find(p => p.split('/').pop().startsWith(`${what}.`));
+  if (!path) return res.status(404).json({ ok: false, error: 'notfound' });
+  return res.status(200).json({ ok: true, url: await store.signRead(path, VIZ_SECONDS) });
+}
+
+// Proprietarul șterge orice generare; angajatul doar pe ale lui (după cheia autorului, nu după numele afișat)
+async function vizDelete(req, body, res, staff) {
+  const id = String(body.id || '');
+  if (!UUID_RE.test(id)) return res.status(404).json({ ok: false, error: 'notfound' });
+  const [row] = await rest(`generations?select=id,actor_key,output_path,input_paths,token&id=eq.${id}`);
+  if (!row) return res.status(404).json({ ok: false, error: 'notfound' });
+  if (staff && row.actor_key !== teamKey(req)) return res.status(403).json({ ok: false, error: 'forbidden' });
+  await viz.removeGeneration(row);
+  return res.status(200).json({ ok: true });
+}
+
+async function vizAction(action, req, res, body, staff) {
+  if (action === 'viz-list') return vizList(req, res, staff);
+  if (action === 'viz-open') return vizOpen(req, res);
+  if (action === 'viz-upload') return vizUpload(req, body, res);
+  if (action === 'viz-generate') return vizGenerate(req, body, res);
+  if (action === 'viz-cancel') return vizCancel(req, body, res);
+  if (action === 'viz-delete') return vizDelete(req, body, res, staff);
+  return res.status(404).json({ ok: false, error: 'notfound' });
+}
+
+const GET_ACTIONS = ['open', 'viz-list', 'viz-open'];
+
 module.exports = async function handler(req, res) {
   const action = String(req.query.action || '');
-  if (!allow(req, res, action === 'open' ? ['GET'] : ['POST'])) return;
+  if (!allow(req, res, GET_ACTIONS.includes(action) ? ['GET'] : ['POST'])) return;
   // Scanerul e deschis și angajaților, cu tipurile și câmpurile limitate mai sus
   const role = requireAdmin(req, res, { staff: true });
   if (!role) return;
@@ -356,6 +511,7 @@ module.exports = async function handler(req, res) {
   try {
     if (action === 'open') return await open(req, res, staff);
     if (action === 'upload') return await upload(body, res);
+    if (action.startsWith('viz-')) return await vizAction(action, req, res, body, staff);
     if (!['read', 'save', 'cancel'].includes(action)) return res.status(404).json({ ok: false, error: 'notfound' });
     if (!UUID_RE.test(String(body.token || ''))) return res.status(400).json({ ok: false, error: 'token' });
     if (action === 'read') return await read(body, res, staff);

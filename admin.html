@@ -27,6 +27,8 @@
         <a class="filter" href="/admin?fin=list" data-sec="fin">Financiar</a>
         <a class="filter" href="/admin?due=pay" data-sec="dues">Scadențe <span class="nav-count" id="dueCount" hidden></span></a>
         <a class="filter" href="/admin?cat=list" data-sec="cat">Catalog</a>
+        <!-- Vizualizări: și pentru angajați (fără bani); celelalte secțiuni de mai sus sunt doar ale proprietarului -->
+        <a class="filter" href="/admin?viz=list" data-sec="viz">Vizualizări</a>
         <!-- Doar proprietarul: panoul exact cum îl vede un angajat (serverul aplică aceleași limite) -->
         <button class="link-btn view-as-btn" id="viewAsBtn" type="button">Vezi ca angajat</button>
       </nav>
@@ -135,6 +137,11 @@
       <div id="cat"></div>
     </section>
 
+    <!-- Vizualizări: lista generală a echipei, fără client (admin-viz.js) -->
+    <section id="view-viz" class="admin-view" hidden>
+      <div id="vizList"></div>
+    </section>
+
     <!-- Scadențe: De plătit / De încasat (admin-dues.js) -->
     <section id="view-dues" class="admin-view" hidden>
       <div id="dues"></div>
@@ -237,9 +244,81 @@
     <p class="admin-msg" id="docMsg" role="alert"></p>
   </dialog>
 
+  <!-- Vizualizare nouă (schiță generată pe server): tip, 1–3 poze, dorințe → generare → rezultat -->
+  <dialog class="doc-dialog viz-dialog" id="vizDlg" aria-labelledby="vizDlgTitle">
+    <div class="doc-head">
+      <h2 id="vizDlgTitle">Vizualizare nouă</h2>
+      <button class="link-btn" type="button" id="vizDlgClose">Închide</button>
+    </div>
+    <form class="doc-step" id="vizDlgForm" novalidate>
+      <p class="muted" id="vizDlgFor"></p>
+      <label class="new-field"><span class="admin-label">Ce vizualizăm *</span><select class="admin-input" id="vizKind" required></select></label>
+      <div class="new-field">
+        <span class="admin-label">Poze * (1–3, JPG / PNG / WEBP, până la 10 MB)</span>
+        <div class="doc-pick">
+          <label class="btn btn-sm doc-file" id="vizCamLabel" hidden>
+            <input type="file" id="vizCam" accept="image/*" capture="environment">
+            Fotografiază
+          </label>
+          <label class="btn btn-sm btn-ghost doc-file" id="vizFileLabel">
+            <input type="file" id="vizFileIn" accept="image/*" multiple>
+            <span id="vizFileText">Alege pozele</span>
+          </label>
+        </div>
+      </div>
+      <ul class="doc-thumbs" id="vizDlgThumbs"></ul>
+      <label class="new-field"><span class="admin-label">Dorințele (cel mult 1000 de caractere)</span>
+        <textarea class="admin-input" id="vizWishes" rows="3" maxlength="1000" placeholder="ex. casă cu un etaj, acoperiș plat, lemn și piatră"></textarea></label>
+      <p class="status-note" id="vizUsage"></p>
+      <div class="reject-actions">
+        <button class="btn btn-sm" type="submit" id="vizGo">Generează</button>
+        <button class="btn btn-sm btn-ghost" type="button" id="vizDlgCancel">Anulează</button>
+      </div>
+    </form>
+    <section class="doc-step" id="vizDlgResult" hidden>
+      <figure class="viz-shot">
+        <img id="vizDlgImg" alt="Schiță orientativă generată automat">
+        <figcaption>Schiță orientativă generată automat, nu e proiect</figcaption>
+      </figure>
+      <div class="reject-actions">
+        <a class="btn btn-sm" id="vizDlgDownload" href="#" target="_blank" rel="noopener">Descarcă</a>
+        <button class="btn btn-sm btn-ghost" type="button" id="vizDlgAnother">Încă o vizualizare</button>
+        <button class="btn btn-sm btn-ghost" type="button" id="vizDlgDone">Închide</button>
+      </div>
+    </section>
+    <p class="admin-msg" id="vizDlgMsg" role="alert"></p>
+    <p class="status-note doc-detail" id="vizDlgDetail"></p>
+    <div class="reject-actions" id="vizRetryBox" hidden>
+      <button class="btn btn-sm" type="button" id="vizRetry">Încearcă din nou</button>
+    </div>
+  </dialog>
+
+  <!-- O generare: schița mare, pozele de intrare și ștergerea (linkuri semnate de 5 minute) -->
+  <dialog class="doc-dialog viz-dialog is-wide" id="vizViewDlg" aria-labelledby="vizViewTitle">
+    <div class="doc-head">
+      <h2 id="vizViewTitle">Vizualizare</h2>
+      <button class="link-btn" type="button" id="vizViewClose">Închide</button>
+    </div>
+    <div class="doc-step">
+      <p class="muted" id="vizViewMeta"></p>
+      <figure class="viz-shot">
+        <img id="vizViewImg" alt="Schiță orientativă generată automat">
+        <figcaption>Schiță orientativă generată automat, nu e proiect</figcaption>
+      </figure>
+      <p class="viz-wishes" id="vizViewWishes"></p>
+      <div class="viz-inputs" id="vizViewInputs"></div>
+      <div class="reject-actions">
+        <a class="btn btn-sm" id="vizViewDownload" href="#" target="_blank" rel="noopener">Descarcă</a>
+        <button class="btn btn-sm btn-ghost danger-btn" type="button" id="vizViewDelete" hidden>Șterge</button>
+      </div>
+      <p class="admin-msg" id="vizViewMsg" role="alert"></p>
+    </div>
+  </dialog>
+
   <script src="admin-fin.js"></script>
   <script src="admin-dues.js"></script>
   <script src="admin-cat.js"></script>
+  <script src="admin-viz.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>
