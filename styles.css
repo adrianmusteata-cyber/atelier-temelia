@@ -93,8 +93,8 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
   background: var(--lux); mix-blend-mode: difference; opacity: 0;
   transition: width .5s var(--ease), height .5s var(--ease), margin .5s var(--ease), opacity .3s, background .3s;
 }
-.has-cursor .cursor.on { opacity: 1; }
-.has-cursor .cursor.link { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+/* cercul apare doar peste proiecte („Vezi”), nu urmărește mouse-ul în rest */
+.has-cursor .cursor.on.view { opacity: 1; }
 .has-cursor .cursor.view { width: 104px; height: 104px; margin: -52px 0 0 -52px; mix-blend-mode: normal; background: var(--lux); }
 .cursor span { font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--bg); opacity: 0; transition: opacity .3s; }
 .cursor.view span { opacity: 1; }

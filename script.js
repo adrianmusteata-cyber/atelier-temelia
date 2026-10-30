@@ -370,7 +370,7 @@
     scrollTrigger: { trigger: '.footer', start: 'top 95%', once: true },
   });
 
-  /* ---------- Cursor personalizat (doar mouse) ---------- */
+  /* ---------- Cercul „Vezi” peste proiecte (doar mouse) ---------- */
   if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
     const cursor = $('#cursor');
     root.classList.add('has-cursor');
@@ -381,10 +381,6 @@
     $$('[data-cursor]').forEach(el => {
       el.addEventListener('pointerenter', () => cursor.classList.add('view'));
       el.addEventListener('pointerleave', () => cursor.classList.remove('view'));
-    });
-    $$('a, button:not([data-cursor]), summary, input, select, textarea, label').forEach(el => {
-      el.addEventListener('pointerenter', () => cursor.classList.add('link'));
-      el.addEventListener('pointerleave', () => cursor.classList.remove('link'));
     });
   }
 
