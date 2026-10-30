@@ -72,7 +72,7 @@ function system() {
   const idno = (process.env.OWN_IDNO || '').trim();
   return [
     'Citești documente fotografiate sau scanate pentru biroul de arhitectură LUXARCH din Republica Moldova.',
-    'Alege exact o unealtă: tipul documentului, cu câmpurile citite, sau not_a_document.',
+    'Răspunde DOAR apelând exact o unealtă, fără text: tipul documentului, cu câmpurile citite, sau not_a_document.',
     `Firma noastră: ${own}${idno ? ` (IDNO ${idno})` : ''}. Un document emis de noi către altcineva e „de_incasat”.`,
     'Reguli:',
     '- Nu inventa nimic. Un câmp care nu apare în document rămâne gol ("").',
@@ -93,8 +93,8 @@ async function readDocument(pages, forced = null) {
   content.push({
     type: 'text',
     text: forced
-      ? `Acesta e un document de tipul „${DOC_TYPES[forced].label}”. Citește câmpurile.`
-      : 'Ce document e acesta? Alege unealta potrivită și completează câmpurile.',
+      ? `Acesta e un document de tipul „${DOC_TYPES[forced].label}”. Citește câmpurile și apelează unealta ${forced}.`
+      : 'Ce document e acesta? Apelează unealta potrivită și completează câmpurile.',
   });
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -104,8 +104,9 @@ async function readDocument(pages, forced = null) {
       model: MODEL(),
       max_tokens: 4000,
       system: system(),
-      tools: tools(),
-      tool_choice: forced ? { type: 'tool', name: forced } : { type: 'any' },
+      // Unele modele nu acceptă tool_choice „any”/„tool”: alegerea rămâne „auto”,
+      // iar la tipul ales de utilizator Claude primește doar unealta acelui tip
+      tools: forced ? tools().filter(t => t.name === forced) : tools(),
       messages: [{ role: 'user', content }],
     }),
     signal: AbortSignal.timeout(TIMEOUT),
