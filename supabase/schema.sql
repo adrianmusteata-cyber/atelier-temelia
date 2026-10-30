@@ -19,11 +19,14 @@ create table if not exists public.requests (
                     check (status in ('noua', 'contactata', 'in_lucru', 'procesat', 'avans', 'platit', 'incheiat', 'respins', 'inchisa')),
   status_comment    text not null default '',   -- motivul, obligatoriu la „respins”
   status_updated_at timestamptz not null default now(),
-  source            text not null default 'site' check (source in ('site', 'manual')),
+  source            text not null default 'site'
+                    constraint requests_source_check check (source in ('site', 'manual', 'carte_vizita', 'chestionar', 'document')),
   channel           text not null default '' check (channel in ('', 'apel', 'intalnire')),  -- doar la „manual”
   notes             text not null default '',   -- notele interne din CRM
   contract_value    numeric(12, 2) check (contract_value is null or contract_value >= 0),
-  currency          text not null default 'MDL' check (currency in ('MDL', 'EUR'))
+  currency          text not null default 'MDL' check (currency in ('MDL', 'EUR')),
+  -- Telefonul poate lipsi (carte de vizită doar cu email), dar nu ambele
+  constraint requests_phone_or_email check (phone <> '' or email <> '')
 );
 
 create index if not exists requests_created_at_idx on public.requests (created_at desc);
@@ -80,6 +83,25 @@ create table if not exists public.payments (
 
 create index if not exists payments_request_idx on public.payments (request_id, paid_on);
 
+-- Originalele documentelor recunoscute de Claude (poze / PDF în Storage, bucketul privat „documente”)
+create table if not exists public.documents (
+  id         bigint generated always as identity primary key,
+  doc_type   text not null check (doc_type in ('carte_vizita', 'chestionar', 'aviz', 'chitanta', 'de_platit', 'de_incasat', 'lista_preturi')),
+  request_id uuid references public.requests (id) on delete cascade,
+  page       smallint not null default 1,
+  path       text not null,
+  mime       text not null,
+  size_bytes integer not null,
+  created_at timestamptz not null default now(),
+  check (request_id is not null)
+);
+
+create index if not exists documents_request_idx on public.documents (request_id);
+
+insert into storage.buckets (id, name, public) values ('documente', 'documente', false)
+on conflict (id) do nothing;
+
+alter table public.documents      enable row level security;
 alter table public.payments       enable row level security;
 alter table public.requests       enable row level security;
 alter table public.rate_hits      enable row level security;

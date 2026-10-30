@@ -214,3 +214,35 @@ body.admin {
   .pay-contract .btn { grid-column: 1 / -1; justify-self: start; }
   .pay-fields { grid-template-columns: 1fr; }
 }
+
+/* Documente recunoscute de Claude */
+.bar-actions { display: flex; align-items: center; gap: 8px; }
+.src-carte_vizita, .src-chestionar, .src-document { background: #E6E1F0; color: #3F3460; }
+.doc-dialog {
+  width: min(640px, 100% - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; overflow-x: hidden;
+  padding: 22px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; color: var(--ink);
+}
+.doc-dialog::backdrop { background: rgba(28, 24, 20, .45); }
+.doc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.doc-head h2 { font-size: 1.8rem; font-weight: 500; }
+.doc-step { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.doc-step .new-grid { margin: 4px 0; }
+.doc-step .admin-input { width: 100%; min-width: 0; }
+.doc-file { position: relative; align-self: flex-start; cursor: pointer; }
+.doc-file input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.doc-thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+.doc-thumbs li { display: flex; flex-direction: column; gap: 4px; width: 104px; }
+.doc-thumbs img, .doc-pdf {
+  width: 104px; height: 104px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--bg);
+}
+.doc-pdf { display: grid; place-items: center; font-weight: 700; letter-spacing: .1em; color: var(--clay-d); }
+.doc-thumbs.is-small li, .doc-thumbs.is-small img, .doc-thumbs.is-small .doc-pdf { width: 64px; height: 64px; }
+.doc-thumb-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.doc-dupes { padding: 12px 14px; border-radius: 12px; background: #FBF0DA; border: 1px solid #E5C27A; font-size: .94rem; }
+.doc-dupes ul { display: grid; gap: 4px; margin: 6px 0; }
+.doc-dupes li { overflow-wrap: anywhere; }
+.doc-links { display: grid; gap: 4px; }
+@media (max-width: 600px) {
+  .bar-actions .btn { padding-inline: 12px; }
+  .doc-dialog { padding: 18px 14px; }
+}

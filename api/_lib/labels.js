@@ -31,6 +31,20 @@ const STATUSES = {
 const SOURCES = {
   site: 'Site web',
   manual: 'Manual',
+  carte_vizita: 'Carte de vizită',
+  chestionar: 'Chestionar',
+  document: 'Document',
+};
+
+// Tipurile de documente recunoscute de Claude; `ready` = secțiunea de destinație există deja
+const DOC_TYPES = {
+  carte_vizita: { label: 'Carte de vizită', ready: true },
+  chestionar: { label: 'Chestionar', ready: true },
+  aviz: { label: 'Aviz de expediere', ready: false },
+  chitanta: { label: 'Chitanță / factură achitată', ready: false },
+  de_platit: { label: 'Factură / contract de plătit', ready: false },
+  de_incasat: { label: 'Factură / contract de încasat', ready: false },
+  lista_preturi: { label: 'Listă de prețuri', ready: false },
 };
 
 // Canalul clientului adăugat manual
@@ -39,4 +53,4 @@ const CHANNELS = {
   intalnire: 'Întâlnire',
 };
 
-module.exports = { TYPES, SERVICES, STATUSES, SOURCES, CHANNELS };
+module.exports = { TYPES, SERVICES, STATUSES, SOURCES, CHANNELS, DOC_TYPES };

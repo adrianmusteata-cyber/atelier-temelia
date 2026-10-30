@@ -18,6 +18,8 @@ const paidTotal = id => rest(`payments?select=amount&request_id=eq.${id}`)
 
 const history = id => rest(`status_history?select=from_status,to_status,comment,at&request_id=eq.${id}&order=at.asc,id.asc`);
 const payments = id => rest(`payments?select=id,paid_on,amount,note&request_id=eq.${id}&order=paid_on.asc,id.asc`);
+// Originalele (carte de vizită, chestionar); dacă tabelul încă lipsește, fișa merge și fără ele
+const documents = id => rest(`documents?select=id,doc_type,page,mime,created_at&request_id=eq.${id}&order=page.asc`).catch(() => []);
 
 module.exports = async function handler(req, res) {
   if (!allow(req, res, ['GET', 'PATCH'])) return;
@@ -28,9 +30,9 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const [[item], hist, pays] = await Promise.all([rest(`requests?select=*&id=eq.${id}`), history(id), payments(id)]);
+      const [[item], hist, pays, docs] = await Promise.all([rest(`requests?select=*&id=eq.${id}`), history(id), payments(id), documents(id)]);
       if (!item) return res.status(404).json({ ok: false, error: 'notfound' });
-      return res.status(200).json({ ok: true, item, history: hist, payments: pays });
+      return res.status(200).json({ ok: true, item, history: hist, payments: pays, documents: docs });
     }
 
     const body = jsonBody(req) || {};

@@ -20,7 +20,10 @@
         <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 27 V16 a9 9 0 0 1 18 0 V27" /><path d="M3 27 H29" /><circle cx="16" cy="17" r="2.6" /></svg>
         <span>CRM <em>LUXARCH</em></span>
       </a>
-      <button class="btn btn-sm btn-ghost" id="logout" hidden>Ieșire</button>
+      <div class="bar-actions">
+        <button class="btn btn-sm btn-clay" id="docBtn" type="button" hidden>Încarcă document</button>
+        <button class="btn btn-sm btn-ghost" id="logout" hidden>Ieșire</button>
+      </div>
     </div>
   </header>
 
@@ -104,6 +107,69 @@
         <button class="btn btn-sm btn-ghost" type="submit" value="cancel">Anulează</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Document recunoscut de Claude: încărcare → citire → verificare → salvare -->
+  <dialog class="doc-dialog" id="docDlg" aria-labelledby="docDlgTitle">
+    <div class="doc-head">
+      <h2 id="docDlgTitle">Încarcă document</h2>
+      <button class="link-btn" type="button" id="docClose">Închide</button>
+    </div>
+
+    <!-- 1. Alegerea fișierelor -->
+    <section class="doc-step" data-step="pick">
+      <p class="muted">Fotografiați documentul sau alegeți o poză / un PDF. La o carte de vizită puteți adăuga și verso.
+        Până la 5 poze (paginile aceluiași document) sau un singur PDF.</p>
+      <label class="btn btn-sm btn-ghost doc-file">
+        <input type="file" id="docFile" accept="image/*,application/pdf" multiple>
+        Fotografiază / alege fișier
+      </label>
+      <ul class="doc-thumbs" id="docThumbs"></ul>
+      <div class="reject-actions">
+        <button class="btn btn-sm" type="button" id="docRead" disabled>Citește</button>
+      </div>
+    </section>
+
+    <!-- 2. Claude nu a răspuns -->
+    <section class="doc-step" data-step="error" hidden>
+      <p class="admin-msg">Nu s-a putut citi documentul. Încearcă din nou sau completează manual.</p>
+      <div class="reject-actions">
+        <button class="btn btn-sm" type="button" id="docRetry">Încearcă din nou</button>
+        <button class="btn btn-sm btn-ghost" type="button" id="docManual">Completez manual</button>
+      </div>
+    </section>
+
+    <!-- 3. Tip recunoscut, dar secțiunea lui nu există încă -->
+    <section class="doc-step" data-step="unsupported" hidden>
+      <p class="admin-msg" id="docUnsupported"></p>
+      <div class="reject-actions">
+        <button class="btn btn-sm btn-ghost" type="button" id="docChangeType">Schimbă tipul</button>
+        <button class="btn btn-sm" type="button" id="docUnsupportedClose">Închide</button>
+      </div>
+    </section>
+
+    <!-- 4. Verificare și salvare -->
+    <form class="doc-step" data-step="review" id="docForm" novalidate hidden>
+      <label class="new-field"><span class="admin-label">Tip document</span><select class="admin-input" id="docType"></select></label>
+      <ul class="doc-thumbs is-small" id="docReviewThumbs"></ul>
+      <p class="status-note err" id="docHint"></p>
+      <div class="doc-dupes" id="docDupes" hidden></div>
+      <div class="new-grid">
+        <label class="new-field"><span class="admin-label">Nume *</span><input class="admin-input" name="name" maxlength="100" autocomplete="off"></label>
+        <label class="new-field"><span class="admin-label">Telefon</span><input class="admin-input" name="phone" type="tel" maxlength="30" autocomplete="off"></label>
+        <label class="new-field new-field-wide"><span class="admin-label">Email</span><input class="admin-input" name="email" type="email" maxlength="150" autocomplete="off"></label>
+        <label class="new-field"><span class="admin-label">Tip proiect</span><select class="admin-input" name="type" id="docProjType"></select></label>
+        <label class="new-field"><span class="admin-label">Servicii</span><select class="admin-input" name="service" id="docService"></select></label>
+        <label class="new-field new-field-wide" id="docMessageField"><span class="admin-label">Despre proiect</span><textarea class="admin-input" name="message" rows="3" maxlength="5000"></textarea></label>
+        <label class="new-field new-field-wide"><span class="admin-label">Note</span><textarea class="admin-input" name="notes" rows="5" maxlength="5000"></textarea></label>
+      </div>
+      <div class="reject-actions">
+        <button class="btn btn-sm" type="submit" id="docSave">Salvează</button>
+        <button class="btn btn-sm btn-ghost" type="button" id="docCancel">Anulează</button>
+      </div>
+    </form>
+
+    <p class="admin-msg" id="docMsg" role="alert"></p>
   </dialog>
 
   <script src="admin.js"></script>

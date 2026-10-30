@@ -8,13 +8,18 @@ function config() {
   return { url: url.replace(/\/+$/, ''), key };
 }
 
+// Cheile vechi (service_role) sunt JWT și merg și în Authorization;
+// cheile noi (sb_secret_…) se trimit doar în antetul apikey
+function authHeaders(key) {
+  const headers = { apikey: key };
+  if (key.startsWith('eyJ')) headers.Authorization = `Bearer ${key}`;
+  return headers;
+}
+
 // path: de ex. 'requests?select=*&order=created_at.desc'
 async function rest(path, { method = 'GET', body, prefer } = {}) {
   const { url, key } = config();
-  // Cheile vechi (service_role) sunt JWT și merg și în Authorization;
-  // cheile noi (sb_secret_…) se trimit doar în antetul apikey
-  const headers = { apikey: key };
-  if (key.startsWith('eyJ')) headers.Authorization = `Bearer ${key}`;
+  const headers = authHeaders(key);
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (prefer) headers.Prefer = prefer;
   const r = await fetch(`${url}/rest/v1/${path}`, {
@@ -29,4 +34,4 @@ async function rest(path, { method = 'GET', body, prefer } = {}) {
   return text ? JSON.parse(text) : null;
 }
 
-module.exports = { rest };
+module.exports = { rest, config, authHeaders };

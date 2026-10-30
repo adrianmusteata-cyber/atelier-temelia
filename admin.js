@@ -11,9 +11,19 @@
   const STATUSES = { noua: 'Nouă', contactata: 'Contactată', in_lucru: 'În lucru', procesat: 'Procesat', avans: 'Avans', platit: 'Plătit', incheiat: 'Încheiat', respins: 'Respins', inchisa: 'Închisă' };
   const TYPES = { casa: 'Casă unifamilială', ansamblu: 'Ansamblu rezidențial', birouri: 'Clădire de birouri / comercială', hala: 'Hală / industrial', expertiza: 'Expertiză / consolidare', altceva: 'Altceva' };
   const SERVICES = { arh_rez: 'Arhitectură + Rezistență', arh: 'Doar arhitectură', rez: 'Doar rezistență', design: 'Design interior', management: 'Management de proiect', nu_stiu: 'Nu știu încă' };
-  const SOURCES = { site: 'Site web', manual: 'Manual' };
+  const SOURCES = { site: 'Site web', manual: 'Manual', carte_vizita: 'Carte de vizită', chestionar: 'Chestionar', document: 'Document' };
+  // Tipurile de documente; `ready` = secțiunea lor există (restul vin în etapele următoare)
+  const DOC_TYPES = {
+    carte_vizita: { label: 'Carte de vizită', ready: true },
+    chestionar: { label: 'Chestionar', ready: true },
+    aviz: { label: 'Aviz de expediere', ready: false },
+    chitanta: { label: 'Chitanță / factură achitată', ready: false },
+    de_platit: { label: 'Factură / contract de plătit', ready: false },
+    de_incasat: { label: 'Factură / contract de încasat', ready: false },
+    lista_preturi: { label: 'Listă de prețuri', ready: false },
+  };
   const CHANNELS = { apel: 'Apel', intalnire: 'Întâlnire' };
-  const FIELD_NAMES = { name: 'nume', phone: 'telefon', channel: 'cum a venit', email: 'email', type: 'tip proiect', service: 'servicii', status: 'etapă', notes: 'note' };
+  const FIELD_NAMES = { name: 'nume', phone: 'telefon', channel: 'cum a venit', email: 'email', type: 'tip proiect', service: 'servicii', status: 'etapă', notes: 'note', contact: 'telefon sau email', message: 'despre proiect' };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = d => new Date(d).toLocaleString('ro-RO', { timeZone: 'Europe/Chisinau', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -54,6 +64,7 @@
   function show(name) {
     Object.entries(views).forEach(([k, el]) => { el.hidden = k !== name; });
     $('#logout').hidden = name === 'login';
+    $('#docBtn').hidden = name === 'login';
     $('#toolbar').hidden = name !== 'board' && name !== 'list';
     $('#main').classList.toggle('is-wide', name === 'board');
     $('#viewSwitch').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.view === name));
@@ -68,7 +79,7 @@
     });
     if (r.status === 401) throw new AuthError();
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw Object.assign(new Error(data.error || `HTTP ${r.status}`), { status: r.status, fields: data.fields || [] });
+    if (!r.ok) throw Object.assign(new Error(data.error || `HTTP ${r.status}`), { status: r.status, fields: data.fields || [], data });
     return data;
   }
 
@@ -189,7 +200,7 @@
       .map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('');
     return `<article class="card${r.status === 'noua' ? ' is-new' : ''}" draggable="true" data-id="${esc(r.id)}">
       <a class="card-name" href="/admin?id=${esc(r.id)}">${esc(r.name)}</a>
-      <span class="card-meta">${esc(r.phone)}</span>
+      <span class="card-meta">${esc(r.phone || r.email)}</span>
       ${payText(r) ? `<span class="card-pay${fullyPaid(r, r.paid_total) ? ' is-paid' : ''}">${esc(payText(r))}</span>` : ''}
       <span class="card-foot">${srcTag(r)}<span>${esc(fmtDay(r.created_at))}</span></span>
       <select class="card-move" aria-label="Mută „${esc(r.name)}” în altă etapă">
@@ -336,7 +347,7 @@
     return `<li><a class="req${r.status === 'noua' ? ' is-new' : ''}" href="/admin?${detailQs(r.id)}">
       <span class="req-name">${esc(r.name)}</span>
       ${badge(r.status)}
-      <span class="req-meta">${esc(fmt(r.created_at))} · ${esc(r.phone)} · ${esc(srcText(r))}${r.type ? ` · ${esc(TYPES[r.type] || r.type)}` : ''}${payText(r) ? ` · ${esc(payText(r))}` : ''}</span>
+      <span class="req-meta">${esc(fmt(r.created_at))} · ${esc(r.phone || r.email)} ·${esc(srcText(r))}${r.type ? ` · ${esc(TYPES[r.type] || r.type)}` : ''}${payText(r) ? ` · ${esc(payText(r))}` : ''}</span>
     </a></li>`;
   }
 
@@ -438,16 +449,18 @@
     $('#detail').innerHTML = '<p class="admin-msg">Se încarcă…</p>';
     show('detail');
     try {
-      const { item: r, history: hist, payments: pays } = await api('/api/admin/requests/' + encodeURIComponent(id));
+      const { item: r, history: hist, payments: pays, documents: docs = [] } = await api('/api/admin/requests/' + encodeURIComponent(id));
       if (seq !== loadSeq) return;
       const phone = digits(r.phone);
+      // „Carte de vizită — pagina 2” / „Chestionar — PDF”
+      const docName = d => `${DOC_TYPES[d.doc_type]?.label || d.doc_type} — ${d.mime === 'application/pdf' ? 'PDF' : `pagina ${d.page}`}`;
       $('#detail').innerHTML = `
         <article class="detail-card">
           <h1>${esc(r.name)}</h1>
           <p class="muted">${srcTag(r)} Creat la ${esc(fmt(r.created_at))}${r.source === 'site' ? ` · ${({ en: 'Engleză', ru: 'Rusă' })[r.lang] || 'Română'}` : ''}</p>
           <div class="detail-actions">
-            <a class="btn btn-sm" href="tel:${esc(phone)}">Sună</a>
-            <a class="btn btn-sm btn-clay" href="https://wa.me/${esc(phone.replace('+', ''))}" target="_blank" rel="noopener">WhatsApp</a>
+            ${phone ? `<a class="btn btn-sm" href="tel:${esc(phone)}">Sună</a>
+            <a class="btn btn-sm btn-clay" href="https://wa.me/${esc(phone.replace('+', ''))}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
             ${r.email ? `<a class="btn btn-sm btn-ghost" href="mailto:${esc(r.email)}">Email</a>` : ''}
           </div>
           <dl class="detail-grid">
@@ -459,12 +472,14 @@
               </div>
               <p class="status-comment" id="statusComment"${r.status === 'respins' && r.status_comment ? '' : ' hidden'}>Motiv: ${esc(r.status_comment || '')}</p>
             </dd>
-            <dt>Telefon</dt><dd><a href="tel:${esc(phone)}">${esc(r.phone)}</a></dd>
+            <dt>Telefon</dt><dd>${phone ? `<a href="tel:${esc(phone)}">${esc(r.phone)}</a>` : '—'}</dd>
             <dt>Sursă</dt><dd>${esc(srcText(r))}</dd>
             <dt>Creat</dt><dd>${esc(fmt(r.created_at))}</dd>
             <dt>Email</dt><dd>${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : '—'}</dd>
             <dt>Tip proiect</dt><dd>${label(TYPES, r.type)}</dd>
             <dt>Servicii</dt><dd>${label(SERVICES, r.service)}</dd>
+            ${docs.length ? `<dt>Documente</dt><dd><ul class="doc-links">${docs.map(d =>
+              `<li><button class="link-btn" type="button" data-doc="${esc(d.id)}">${esc(docName(d))}</button></li>`).join('')}</ul></dd>` : ''}
             ${r.source === 'site' || r.message ? `<dt>Despre proiect</dt><dd class="detail-msg">${r.message ? esc(r.message) : '—'}</dd>` : ''}
             <dt><label for="notes">Note</label></dt>
             <dd>
@@ -729,6 +744,269 @@
   }
 
   $('#back').addEventListener('click', e => internal(e, e.currentTarget));
+
+  // Originalul documentului: link semnat, valabil 5 minute, cerut abia la clic.
+  // Fereastra se deschide imediat (altfel browserul o blochează), adresa vine după.
+  $('#detail').addEventListener('click', async e => {
+    const btn = e.target.closest('button[data-doc]');
+    if (!btn) return;
+    const w = window.open('', '_blank');
+    try {
+      const { url } = await api('/api/admin/docs/open?id=' + encodeURIComponent(btn.dataset.doc));
+      if (w) { w.opener = null; w.location = url; } else location.href = url;
+    } catch (err) {
+      if (w) w.close();
+      onError(err, () => alert('Nu am putut deschide documentul. Încercați din nou.'));
+    }
+  });
+
+  /* ---------- Document recunoscut de Claude ---------- */
+  const dlg = $('#docDlg'), docForm = $('#docForm'), docMsg = $('#docMsg');
+  const MAX_IMAGES = 5, MAX_IMAGE = 15 * 1024 * 1024, MAX_PDF = 10 * 1024 * 1024, MAX_SIDE = 2000;
+  const doc = { files: [], token: null, type: '', forced: null, dupes: [], saved: false };
+
+  $('#docType').innerHTML = Object.entries(DOC_TYPES).map(([k, t]) => `<option value="${k}">${esc(t.label)}</option>`).join('');
+  $('#docProjType').innerHTML = options(TYPES, '', '— nespecificat —');
+  $('#docService').innerHTML = options(SERVICES, '', '— nespecificat —');
+
+  function step(name) {
+    dlg.querySelectorAll('.doc-step').forEach(s => { s.hidden = s.dataset.step !== name; });
+  }
+
+  function thumbsHtml(small) {
+    return doc.files.map((f, i) => `<li>
+      ${f.mime === 'application/pdf' ? '<span class="doc-pdf">PDF</span>' : `<img src="${f.url}" alt="Pagina ${i + 1}">`}
+      ${small ? '' : `<span class="doc-thumb-actions">
+        ${i ? `<button class="link-btn" type="button" data-act="left" data-i="${i}" aria-label="Mută la stânga">←</button>` : ''}
+        ${i < doc.files.length - 1 ? `<button class="link-btn" type="button" data-act="right" data-i="${i}" aria-label="Mută la dreapta">→</button>` : ''}
+        <button class="link-btn danger" type="button" data-act="del" data-i="${i}">Șterge</button>
+      </span>`}
+    </li>`).join('');
+  }
+  function renderThumbs() {
+    $('#docThumbs').innerHTML = thumbsHtml(false);
+    $('#docRead').disabled = !doc.files.length;
+  }
+
+  // Fișierele s-au schimbat: cele urcate deja nu mai sunt valabile
+  function dropUpload() {
+    if (doc.token) api('/api/admin/docs/cancel', { method: 'POST', body: JSON.stringify({ token: doc.token }) }).catch(() => {});
+    doc.token = null;
+  }
+
+  function resetDoc() {
+    doc.files.forEach(f => URL.revokeObjectURL(f.url));
+    Object.assign(doc, { files: [], token: null, type: '', forced: null, dupes: [], saved: false });
+    docForm.reset();
+    $('#docFile').value = '';
+    docMsg.textContent = '';
+    renderThumbs();
+    step('pick');
+  }
+
+  // Poza se micșorează în browser (latura mare ≤ 2000 px, JPEG): încape în cerere și rezolvă HEIC
+  async function shrink(file) {
+    let src, w, h, url;
+    try {
+      src = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      w = src.width; h = src.height;
+    } catch (e) {
+      url = URL.createObjectURL(file);
+      src = await new Promise((ok, fail) => { const img = new Image(); img.onload = () => ok(img); img.onerror = fail; img.src = url; });
+      w = src.naturalWidth; h = src.naturalHeight;
+    } finally {
+      if (url) URL.revokeObjectURL(url);
+    }
+    const k = Math.min(1, MAX_SIDE / Math.max(w, h));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(w * k); canvas.height = Math.round(h * k);
+    canvas.getContext('2d').drawImage(src, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(ok => canvas.toBlob(ok, 'image/jpeg', 0.85));
+    if (!blob) throw new Error('canvas');
+    return blob;
+  }
+
+  $('#docBtn').addEventListener('click', () => { resetDoc(); dlg.showModal(); });
+
+  $('#docFile').addEventListener('change', async e => {
+    const picked = [...e.target.files];
+    e.target.value = '';
+    docMsg.textContent = '';
+    const pdfs = picked.filter(f => f.type === 'application/pdf');
+    if (pdfs.length) {
+      if (picked.length > 1 || doc.files.length) { docMsg.textContent = 'Un PDF se încarcă singur, fără alte fișiere.'; return; }
+      if (pdfs[0].size > MAX_PDF) { docMsg.textContent = 'PDF-ul e mai mare de 10 MB.'; return; }
+      dropUpload();
+      doc.files = [{ mime: 'application/pdf', blob: pdfs[0], url: '' }];
+      return renderThumbs();
+    }
+    if (doc.files.some(f => f.mime === 'application/pdf')) { docMsg.textContent = 'Un PDF se încarcă singur, fără alte fișiere.'; return; }
+    if (doc.files.length + picked.length > MAX_IMAGES) { docMsg.textContent = `Cel mult ${MAX_IMAGES} poze pentru un document.`; return; }
+    if (picked.some(f => f.size > MAX_IMAGE)) { docMsg.textContent = 'O poză e mai mare de 15 MB.'; return; }
+    $('#docRead').disabled = true;
+    docMsg.textContent = 'Se pregătesc pozele…';
+    try {
+      for (const f of picked) {
+        const blob = await shrink(f);
+        doc.files.push({ mime: 'image/jpeg', blob, url: URL.createObjectURL(blob) });
+      }
+      docMsg.textContent = '';
+    } catch (err) {
+      docMsg.textContent = 'Formatul pozei nu e acceptat. Alege o poză JPG sau PNG.';
+    }
+    dropUpload();
+    renderThumbs();
+  });
+
+  $('#docThumbs').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const i = Number(btn.dataset.i), f = doc.files;
+    if (btn.dataset.act === 'del') URL.revokeObjectURL(f.splice(i, 1)[0].url);
+    else { const j = btn.dataset.act === 'left' ? i - 1 : i + 1; [f[i], f[j]] = [f[j], f[i]]; }
+    dropUpload();
+    renderThumbs();
+  });
+
+  // Urcă fișierele direct în Storage (o singură dată pentru aceleași fișiere)
+  async function uploadFiles() {
+    if (doc.token) return;
+    const meta = doc.files.map((f, i) => ({ page: i + 1, mime: f.mime, size: f.blob.size }));
+    const { token, uploads } = await api('/api/admin/docs/upload', { method: 'POST', body: JSON.stringify({ files: meta }) });
+    await Promise.all(uploads.map(async u => {
+      const f = doc.files[u.page - 1];
+      const r = await fetch(u.url, { method: 'PUT', headers: { 'Content-Type': f.mime }, body: f.blob });
+      if (!r.ok) throw Object.assign(new Error('storage'), { status: 'storage' });
+    }));
+    doc.token = token;
+  }
+
+  function fillForm(fields) {
+    docForm.reset();
+    Object.entries(fields || {}).forEach(([k, v]) => { if (docForm.elements[k]) docForm.elements[k].value = v || ''; });
+  }
+
+  function showReview(type, fields, dupes) {
+    doc.type = type;
+    $('#docType').value = type;
+    $('#docMessageField').hidden = type !== 'chestionar';
+    $('#docReviewThumbs').innerHTML = thumbsHtml(true);
+    fillForm(fields);
+    const f = fields || {};
+    $('#docHint').textContent = !fields ? ''
+      : !f.name && !f.phone && !f.email ? 'Nu s-au putut citi datele principale. Completează-le manual.'
+        : Object.values(f).some(v => String(v).includes('[?]')) ? 'Unele cuvinte nu s-au putut citi — sunt marcate cu [?].' : '';
+    showDupes(dupes || []);
+    step('review');
+  }
+
+  function showDupes(list) {
+    doc.dupes = list;
+    const box = $('#docDupes');
+    box.hidden = !list.length;
+    box.innerHTML = list.length ? `<p><b>Există deja:</b></p><ul>${list.map(d =>
+      `<li>${esc(d.name)} (${esc(d.status)}) <button class="link-btn" type="button" data-open="${esc(d.id)}">Deschide clientul existent</button></li>`).join('')}</ul>
+      <p class="muted">Dacă e altă persoană, apasă „Creează oricum”.</p>` : '';
+    $('#docSave').textContent = list.length ? 'Creează oricum' : 'Salvează';
+  }
+
+  // Citirea cu Claude; `forced` = tipul ales de utilizator
+  async function readDoc(forced) {
+    const btn = $('#docRead');
+    btn.disabled = true; btn.textContent = 'Se citește…';
+    docMsg.textContent = '';
+    doc.forced = forced;
+    try {
+      await uploadFiles();
+      const res = await api('/api/admin/docs/read', { method: 'POST', body: JSON.stringify({ token: doc.token, doc_type: forced || undefined }) });
+      if (!res.doc_type) {
+        doc.token = null; // serverul a șters deja fișierele
+        step('pick');
+        docMsg.textContent = 'Nu pare un document. Nu s-a salvat nimic.';
+        return;
+      }
+      if (!res.supported) {
+        doc.type = res.doc_type;
+        $('#docUnsupported').textContent = `Tip recunoscut: ${DOC_TYPES[res.doc_type].label}. Secțiunea nu e gata încă, nu s-a salvat nimic.`;
+        return step('unsupported');
+      }
+      showReview(res.doc_type, res.fields, res.duplicates);
+    } catch (err) {
+      if (err instanceof AuthError) dlg.close();
+      onError(err, e2 => {
+        if (e2.status === 'storage') { step('pick'); docMsg.textContent = 'Nu s-a putut încărca fișierul. Încearcă din nou.'; return; }
+        if (e2.status === 429) { step('pick'); docMsg.textContent = 'Prea multe citiri într-o oră. Încearcă mai târziu sau completează manual.'; return; }
+        if (e2.status === 400) { dropUpload(); step('pick'); docMsg.textContent = e2.message === 'pages' ? 'PDF-ul are mai mult de 20 de pagini.' : 'Fișierul nu e acceptat (tip sau mărime).'; return; }
+        step('error');
+      });
+    } finally {
+      btn.disabled = !doc.files.length; btn.textContent = 'Citește';
+    }
+  }
+
+  $('#docRead').addEventListener('click', () => readDoc(null));
+  $('#docRetry').addEventListener('click', () => { step('pick'); readDoc(doc.forced); });
+  $('#docManual').addEventListener('click', () => showReview('carte_vizita', null, []));
+  $('#docChangeType').addEventListener('click', () => {
+    showReview(DOC_TYPES[doc.type]?.ready ? doc.type : 'carte_vizita', null, []);
+    $('#docType').focus();
+  });
+
+  // Alt tip: Claude recitește documentul pentru tipul ales (sau doar se schimbă câmpurile, la completare manuală)
+  $('#docType').addEventListener('change', async e => {
+    const next = e.target.value;
+    if (!DOC_TYPES[next].ready) {
+      e.target.value = doc.type;
+      $('#docHint').textContent = `„${DOC_TYPES[next].label}”: secțiunea nu e gata încă.`;
+      return;
+    }
+    if (!doc.files.length) { doc.type = next; $('#docMessageField').hidden = next !== 'chestionar'; return; }
+    if (!confirm('Schimbi tipul? Câmpurile se citesc din nou.')) { e.target.value = doc.type; return; }
+    step('pick');
+    await readDoc(next);
+  });
+
+  docForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fields = Object.fromEntries(new FormData(docForm));
+    if (doc.type !== 'chestionar') fields.message = '';
+    if (!fields.name.trim()) { docMsg.textContent = 'Numele e obligatoriu.'; docForm.elements.name.focus(); return; }
+    if (!fields.phone.trim() && !fields.email.trim()) { docMsg.textContent = 'Completează telefonul sau emailul.'; docForm.elements.phone.focus(); return; }
+    const btn = $('#docSave');
+    btn.disabled = true; docMsg.textContent = '';
+    try {
+      if (doc.files.length) await uploadFiles();
+      const res = await api('/api/admin/docs/save', {
+        method: 'POST',
+        body: JSON.stringify({ token: doc.token || crypto.randomUUID(), doc_type: doc.type, fields, force: doc.dupes.length > 0 }),
+      });
+      doc.saved = true;
+      dlg.close();
+      if (res.filesError) alert('Clientul a fost creat, dar fișierele nu s-au salvat.');
+      go(`id=${encodeURIComponent(res.id)}`);
+    } catch (err) {
+      if (err instanceof AuthError) dlg.close();
+      onError(err, e2 => {
+        if (e2.status === 409) { showDupes(e2.data.duplicates || []); return; }
+        docMsg.textContent = e2.status === 'storage' ? 'Nu s-a putut încărca fișierul. Încearcă din nou.'
+          : e2.status === 400 && e2.fields.length ? `Verificați: ${e2.fields.map(f => FIELD_NAMES[f] || f).join(', ')}.`
+            : 'Nu s-a salvat. Încearcă din nou.';
+      });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#docDupes').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-open]');
+    if (!btn) return;
+    dlg.close();
+    go(`id=${encodeURIComponent(btn.dataset.open)}`);
+  });
+
+  // Închiderea fără salvare: fișierele temporare se șterg
+  ['#docClose', '#docCancel', '#docUnsupportedClose'].forEach(s => $(s).addEventListener('click', () => dlg.close()));
+  dlg.addEventListener('close', () => { if (!doc.saved) dropUpload(); });
 
   route();
 })();

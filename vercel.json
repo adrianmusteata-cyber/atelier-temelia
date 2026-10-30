@@ -1,5 +1,8 @@
 {
   "cleanUrls": true,
+  "functions": {
+    "api/admin/docs/[action].js": { "maxDuration": 60 }
+  },
   "headers": [
     {
       "source": "/admin",

@@ -11,7 +11,7 @@ const { manualClientText, paymentText, isPayment, sendTelegram, sendPayment, not
 
 const PAGE = 50;
 const BOARD_MAX = 1000;
-const FIELDS = 'id,created_at,name,phone,type,service,status,source,channel,status_updated_at,contract_value,currency,payments(amount)';
+const FIELDS = 'id,created_at,name,phone,email,type,service,status,source,channel,status_updated_at,contract_value,currency,payments(amount)';
 const LIMITS = { name: 100, phone: 30, email: 150, notes: 5000 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
