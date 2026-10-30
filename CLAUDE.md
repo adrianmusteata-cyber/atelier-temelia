@@ -1,7 +1,7 @@
 # LUXARCH (fost Atelier Temelia)
 
-Site static (index.html, styles.css, script.js, i18n.js; animații GSAP din CDN), fără build. Limbi: RO (în HTML), RU și EN (în i18n.js). Publicat pe Vercel la https://atelier-temelia.vercel.app,
-legat de GitHub: https://github.com/adrianmusteata-cyber/atelier-temelia (branch `main`).
+Site static (index.html, styles.css, script.js, i18n.js; animații GSAP din CDN), fără build. Limbi: RO (în HTML), RU și EN (în i18n.js). Publicat pe Vercel la https://luxarch.vercel.app,
+legat de GitHub: https://github.com/adrianmusteata-cyber/luxarch (branch `main`).
 
 ## Sincronizare local ↔ GitHub ↔ Vercel
 Folderul local, GitHub și site-ul live trebuie să fie mereu la fel.

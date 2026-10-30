@@ -2,4 +2,4 @@ User-agent: *
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://atelier-temelia.vercel.app/sitemap.xml
+Sitemap: https://luxarch.vercel.app/sitemap.xml

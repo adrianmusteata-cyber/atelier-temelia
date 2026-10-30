@@ -3,8 +3,8 @@
               RESEND_API_KEY, OWNER_EMAIL, MAIL_FROM (emailul e sărit dacă lipsesc) */
 const { TYPES, SERVICES } = require('./labels');
 
-// SITE_URL se setează în Vercel după redenumirea proiectului (ex. https://luxarch.vercel.app)
-const SITE = (process.env.SITE_URL || 'https://atelier-temelia.vercel.app').replace(/\/$/, '');
+// Adresa publică a site-ului (linkurile din Telegram/email); se poate suprascrie cu SITE_URL în Vercel
+const SITE = (process.env.SITE_URL || 'https://luxarch.vercel.app').replace(/\/$/, '');
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const when = d => new Date(d).toLocaleString('ro-RO', { timeZone: 'Europe/Chisinau', dateStyle: 'short', timeStyle: 'short' });
 
