@@ -1,13 +1,37 @@
 /* ==========================================================
-   Panoul de administrare — folosește variabilele din styles.css
+   Panoul de administrare
    ========================================================== */
-body.admin { min-height: 100vh; }
+/* Temă proprie, deschisă și cu contrast mare: suprascrie culorile închise ale site-ului */
+body.admin {
+  --bg: #F4F0E8; --bg-2: #EAE3D7; --ink: #1C1814; --mute: #5A5048; --dim: #6E645A;
+  --line: rgba(28, 24, 20, .16); --lux: #9A6A1F;
+  --ink-2: #4E453D; --clay: #A65A33; --clay-d: #8A4524; --sand: #E3D8C6; --radius: 22px;
+  min-height: 100vh; font-size: 16px;
+}
+.admin .container { width: min(1100px, 100% - 32px); margin-inline: auto; }
+.admin .brand span { font-family: var(--serif); font-size: 1.35rem; font-weight: 600; }
+.admin .brand em { font-style: normal; letter-spacing: .1em; color: var(--clay-d); }
+.admin .mark circle { fill: var(--clay); }
+.admin h1, .admin .req-name { font-weight: 500; }
+
+/* Butoane: text lizibil în orice stare */
+.admin .btn::before { background: var(--clay-d); }
+.admin .btn:hover { color: #fff; }
+.admin .btn-ghost { color: var(--ink); box-shadow: inset 0 0 0 1px rgba(28, 24, 20, .35); }
+.admin .btn-ghost:hover { color: #fff; }
+.admin .btn-clay { background: var(--clay-d); color: #fff; }
+.admin .btn-clay::before { background: var(--ink); }
+
+/* Filtrul de status (linkuri) */
+.admin .filter { color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); }
+.admin .filter:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.admin .filter.is-on { background: var(--ink); color: #fff; box-shadow: none; }
 /* .btn are display: inline-flex, care altfel ar anula atributul hidden */
 .admin [hidden] { display: none !important; }
 .admin-bar {
   position: sticky; top: 0; z-index: 10;
   padding: calc(14px + env(safe-area-inset-top)) 0 14px;
-  background: rgba(245, 239, 230, .9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  background: rgba(244, 240, 232, .92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
 .admin-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -19,7 +43,7 @@ body.admin { min-height: 100vh; }
 /* Autentificare */
 .login-card {
   max-width: 420px; margin: 8vh auto 0; padding: 36px 30px; border-radius: var(--radius);
-  background: rgba(255, 255, 255, .5); border: 1px solid var(--line);
+  background: #fff; border: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 10px;
 }
 .login-card .muted { margin-bottom: 10px; }
@@ -44,7 +68,7 @@ body.admin { min-height: 100vh; }
 .req-list { display: grid; gap: 10px; }
 .req {
   display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center;
-  padding: 16px 18px; border-radius: 18px; background: rgba(255, 255, 255, .45); border: 1px solid var(--line);
+  padding: 16px 18px; border-radius: 18px; background: #FBF9F5; border: 1px solid var(--line);
   transition: border-color .3s, background .3s;
 }
 .req:hover { border-color: var(--ink-2); }
@@ -62,7 +86,7 @@ body.admin { min-height: 100vh; }
 
 /* Detalii */
 .back { display: inline-block; margin-bottom: 18px; font-weight: 600; color: var(--clay-d); }
-.detail-card { padding: clamp(22px, 4vw, 40px); border-radius: var(--radius); background: rgba(255, 255, 255, .5); border: 1px solid var(--line); }
+.detail-card { padding: clamp(22px, 4vw, 40px); border-radius: var(--radius); background: #fff; border: 1px solid var(--line); }
 .detail-card h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); margin-bottom: 6px; }
 .detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 24px; }
 .detail-grid { display: grid; grid-template-columns: 160px 1fr; gap: 0 18px; }
