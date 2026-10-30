@@ -12,13 +12,16 @@
   const TYPES = { casa: 'Casă unifamilială', ansamblu: 'Ansamblu rezidențial', birouri: 'Clădire de birouri / comercială', hala: 'Hală / industrial', expertiza: 'Expertiză / consolidare', altceva: 'Altceva' };
   const SERVICES = { arh_rez: 'Arhitectură + Rezistență', arh: 'Doar arhitectură', rez: 'Doar rezistență', design: 'Design interior', management: 'Management de proiect', nu_stiu: 'Nu știu încă' };
   const SOURCES = { site: 'Site web', manual: 'Manual' };
-  const FIELD_NAMES = { name: 'nume', phone: 'telefon', email: 'email', type: 'tip proiect', service: 'servicii', status: 'etapă', notes: 'note' };
+  const CHANNELS = { apel: 'Apel', intalnire: 'Întâlnire' };
+  const FIELD_NAMES = { name: 'nume', phone: 'telefon', channel: 'cum a venit', email: 'email', type: 'tip proiect', service: 'servicii', status: 'etapă', notes: 'note' };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = d => new Date(d).toLocaleString('ro-RO', { timeZone: 'Europe/Chisinau', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const fmtDay = d => new Date(d).toLocaleDateString('ro-RO', { timeZone: 'Europe/Chisinau', day: '2-digit', month: '2-digit', year: 'numeric' });
   const badge = s => `<span class="badge s-${esc(s)}">${esc(STATUSES[s] || s)}</span>`;
-  const srcTag = s => `<span class="src src-${esc(s)}">${esc(SOURCES[s] || s)}</span>`;
+  // „Site web” sau „Manual · Apel” / „Manual · Întâlnire”
+  const srcText = r => (SOURCES[r.source] || r.source) + (r.channel ? ` · ${CHANNELS[r.channel] || r.channel}` : '');
+  const srcTag = r => `<span class="src src-${esc(r.source)}">${esc(srcText(r))}</span>`;
   const label = (map, k) => (k ? esc(map[k] || k) : '—');
   const digits = p => String(p).replace(/[^\d+]/g, '');
   const options = (map, selected, empty) =>
@@ -165,7 +168,7 @@
     return `<article class="card${r.status === 'noua' ? ' is-new' : ''}" draggable="true" data-id="${esc(r.id)}">
       <a class="card-name" href="/admin?id=${esc(r.id)}">${esc(r.name)}</a>
       <span class="card-meta">${esc(r.phone)}</span>
-      <span class="card-foot">${srcTag(r.source)}<span>${esc(fmtDay(r.created_at))}</span></span>
+      <span class="card-foot">${srcTag(r)}<span>${esc(fmtDay(r.created_at))}</span></span>
       <select class="card-move" aria-label="Mută „${esc(r.name)}” în altă etapă">
         <option value="" selected>Mută în…</option>${moves}
       </select>
@@ -310,7 +313,7 @@
     return `<li><a class="req${r.status === 'noua' ? ' is-new' : ''}" href="/admin?${detailQs(r.id)}">
       <span class="req-name">${esc(r.name)}</span>
       ${badge(r.status)}
-      <span class="req-meta">${esc(fmt(r.created_at))} · ${esc(r.phone)} · ${esc(SOURCES[r.source] || r.source)}${r.type ? ` · ${esc(TYPES[r.type] || r.type)}` : ''}</span>
+      <span class="req-meta">${esc(fmt(r.created_at))} · ${esc(r.phone)} · ${esc(srcText(r))}${r.type ? ` · ${esc(TYPES[r.type] || r.type)}` : ''}</span>
     </a></li>`;
   }
 
@@ -357,6 +360,7 @@
   const newForm = $('#newForm');
   // „Respins” cere motiv, deci se alege abia din fișa clientului
   $('#newStatus').innerHTML = options(Object.fromEntries(Object.entries(STATUSES).filter(([k]) => k !== 'respins')), 'noua');
+  $('#newChannel').innerHTML = options(CHANNELS, '', '— alegeți —');
   $('#newType').innerHTML = options(TYPES, '', '— nespecificat —');
   $('#newService').innerHTML = options(SERVICES, '', '— nespecificat —');
 
@@ -372,9 +376,10 @@
     e.preventDefault();
     const btn = $('#newBtn'), msg = $('#newMsg');
     const data = Object.fromEntries(new FormData(newForm));
-    if (!data.name.trim() || !data.phone.trim()) {
-      msg.textContent = 'Numele și telefonul sunt obligatorii.';
-      newForm.elements[data.name.trim() ? 'phone' : 'name'].focus();
+    const missing = ['name', 'phone', 'channel'].find(k => !(data[k] || '').trim());
+    if (missing) {
+      msg.textContent = 'Numele, telefonul și „Cum a venit” sunt obligatorii.';
+      newForm.elements[missing].focus();
       return;
     }
     btn.disabled = true; msg.textContent = '';
@@ -416,7 +421,7 @@
       $('#detail').innerHTML = `
         <article class="detail-card">
           <h1>${esc(r.name)}</h1>
-          <p class="muted">${srcTag(r.source)} Creat la ${esc(fmt(r.created_at))}${r.source === 'site' ? ` · ${({ en: 'Engleză', ru: 'Rusă' })[r.lang] || 'Română'}` : ''}</p>
+          <p class="muted">${srcTag(r)} Creat la ${esc(fmt(r.created_at))}${r.source === 'site' ? ` · ${({ en: 'Engleză', ru: 'Rusă' })[r.lang] || 'Română'}` : ''}</p>
           <div class="detail-actions">
             <a class="btn btn-sm" href="tel:${esc(phone)}">Sună</a>
             <a class="btn btn-sm btn-clay" href="https://wa.me/${esc(phone.replace('+', ''))}" target="_blank" rel="noopener">WhatsApp</a>
@@ -432,7 +437,7 @@
               <p class="status-comment" id="statusComment"${r.status === 'respins' && r.status_comment ? '' : ' hidden'}>Motiv: ${esc(r.status_comment || '')}</p>
             </dd>
             <dt>Telefon</dt><dd><a href="tel:${esc(phone)}">${esc(r.phone)}</a></dd>
-            <dt>Sursă</dt><dd>${esc(SOURCES[r.source] || r.source)}</dd>
+            <dt>Sursă</dt><dd>${esc(srcText(r))}</dd>
             <dt>Creat</dt><dd>${esc(fmt(r.created_at))}</dd>
             <dt>Email</dt><dd>${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : '—'}</dd>
             <dt>Tip proiect</dt><dd>${label(TYPES, r.type)}</dd>

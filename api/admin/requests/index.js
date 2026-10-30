@@ -1,16 +1,16 @@
 /* GET  /api/admin/requests?status=<status|toate>&cursor=<created_at>
         Lista cererilor, cele mai noi primele, câte 50, plus numărul pe fiecare status.
    GET  /api/admin/requests?all=1 — toți clienții deodată, pentru tabla pâlniei (maximum 1000).
-   POST /api/admin/requests { name, phone, email?, type?, service?, status?, notes? }
-        — client adăugat manual (apel, întâlnire), cu sursa „manual”. */
+   POST /api/admin/requests { name, phone, channel, email?, type?, service?, status?, notes? }
+        — client adăugat manual, cu sursa „manual” și canalul „apel” sau „intalnire”. */
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin } = require('../../_lib/auth');
-const { TYPES, SERVICES, STATUSES } = require('../../_lib/labels');
+const { TYPES, SERVICES, STATUSES, CHANNELS } = require('../../_lib/labels');
 
 const PAGE = 50;
 const BOARD_MAX = 1000;
-const FIELDS = 'id,created_at,name,phone,type,service,status,source,status_updated_at';
+const FIELDS = 'id,created_at,name,phone,type,service,status,source,channel,status_updated_at';
 const LIMITS = { name: 100, phone: 30, email: 150, notes: 5000 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -27,10 +27,12 @@ function validateManual(body) {
     notes: str(body.notes),
     status: str(body.status) || 'noua',
     source: 'manual',
+    channel: str(body.channel),
   };
   const errors = [];
   if (!data.name) errors.push('name');
   if (!data.phone) errors.push('phone');
+  if (!CHANNELS[data.channel]) errors.push('channel');
   if (data.email && !EMAIL_RE.test(data.email)) errors.push('email');
   for (const [f, max] of Object.entries(LIMITS)) if (data[f].length > max) errors.push(f);
   if (data.type && !TYPES[data.type]) errors.push('type');

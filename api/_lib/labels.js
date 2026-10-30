@@ -31,4 +31,10 @@ const SOURCES = {
   manual: 'Manual',
 };
 
-module.exports = { TYPES, SERVICES, STATUSES, SOURCES };
+// Canalul clientului adăugat manual
+const CHANNELS = {
+  apel: 'Apel',
+  intalnire: 'Întâlnire',
+};
+
+module.exports = { TYPES, SERVICES, STATUSES, SOURCES, CHANNELS };

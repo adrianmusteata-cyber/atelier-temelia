@@ -20,6 +20,7 @@ create table if not exists public.requests (
   status_comment    text not null default '',   -- motivul, obligatoriu la „respins”
   status_updated_at timestamptz not null default now(),
   source            text not null default 'site' check (source in ('site', 'manual')),
+  channel           text not null default '' check (channel in ('', 'apel', 'intalnire')),  -- doar la „manual”
   notes             text not null default ''    -- notele interne din CRM
 );
 

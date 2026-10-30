@@ -69,14 +69,15 @@
       <a class="back" id="backNew" href="/admin">← Înapoi</a>
       <form class="detail-card new-form" id="newForm" novalidate>
         <h1>Client nou</h1>
-        <p class="muted">Adăugat manual, după un apel sau o întâlnire. Sursa va fi „Manual”.</p>
+        <p class="muted">Adăugat manual, după un apel sau o întâlnire. Sursa va fi „Manual”, cu canalul ales mai jos.</p>
         <div class="new-grid">
           <label class="new-field"><span class="admin-label">Nume *</span><input class="admin-input" name="name" maxlength="100" autocomplete="off" required></label>
           <label class="new-field"><span class="admin-label">Telefon *</span><input class="admin-input" name="phone" type="tel" maxlength="30" autocomplete="off" required></label>
-          <label class="new-field"><span class="admin-label">Email</span><input class="admin-input" name="email" type="email" maxlength="150" autocomplete="off"></label>
+          <label class="new-field"><span class="admin-label">Cum a venit *</span><select class="admin-input" name="channel" id="newChannel" required></select></label>
           <label class="new-field"><span class="admin-label">Etapă</span><select class="admin-input" name="status" id="newStatus"></select></label>
           <label class="new-field"><span class="admin-label">Tip proiect</span><select class="admin-input" name="type" id="newType"></select></label>
           <label class="new-field"><span class="admin-label">Servicii</span><select class="admin-input" name="service" id="newService"></select></label>
+          <label class="new-field new-field-wide"><span class="admin-label">Email</span><input class="admin-input" name="email" type="email" maxlength="150" autocomplete="off"></label>
           <label class="new-field new-field-wide"><span class="admin-label">Note</span><textarea class="admin-input" name="notes" rows="4" maxlength="5000"></textarea></label>
         </div>
         <button class="btn" type="submit" id="newBtn">Salvează clientul</button>
