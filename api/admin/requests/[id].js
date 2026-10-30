@@ -36,7 +36,12 @@ module.exports = async function handler(req, res) {
         receivablesWithState([id]).catch(() => []),
       ]);
       if (!item) return res.status(404).json({ ok: false, error: 'notfound' });
-      return res.status(200).json({ ok: true, item, history: hist, payments: pays, documents: docs, receivables: recs });
+      // Documentele ratelor de încasat (contract / factură emisă de noi), legate de grupul ratelor
+      const groups = [...new Set(recs.map(r => r.group_id).filter(Boolean))];
+      const groupDocs = groups.length
+        ? await rest(`documents?select=id,doc_type,page,mime,created_at,receivable_group&receivable_group=in.(${groups.join(',')})&order=page.asc`).catch(() => [])
+        : [];
+      return res.status(200).json({ ok: true, item, history: hist, payments: pays, documents: [...docs, ...groupDocs], receivables: recs });
     }
 
     const body = jsonBody(req) || {};
