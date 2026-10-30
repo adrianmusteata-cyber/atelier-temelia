@@ -7,6 +7,7 @@ const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin } = require('../../_lib/auth');
 const { TYPES, SERVICES, STATUSES, CHANNELS } = require('../../_lib/labels');
+const { manualClientText, paymentText, isPayment, sendTelegram, sendPayment, notifySafely } = require('../../_lib/notify');
 
 const PAGE = 50;
 const BOARD_MAX = 1000;
@@ -79,6 +80,10 @@ async function create(req, res) {
   const { data, errors } = validateManual(jsonBody(req) || {});
   if (errors) return res.status(400).json({ ok: false, error: 'invalid', fields: errors });
   const [item] = await rest('requests', { method: 'POST', body: data, prefer: 'return=representation' });
+  // Telegram: clientul nou în chatul principal; dacă e creat direct ca Avans/Plătit, și în „Achitări”
+  const jobs = [sendTelegram(manualClientText(item))];
+  if (isPayment(item.status)) jobs.push(sendPayment(paymentText(item)));
+  await notifySafely(jobs);
   return res.status(201).json({ ok: true, item });
 }
 
