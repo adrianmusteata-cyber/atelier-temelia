@@ -5,7 +5,7 @@
 (() => {
   const $ = (s, c = document) => c.querySelector(s);
 
-  const STATUSES = { noua: 'Nouă', in_lucru: 'În lucru', inchisa: 'Închisă' };
+  const STATUSES = { noua: 'Nouă', in_lucru: 'În lucru', procesat: 'Procesat', avans: 'Avans', incheiat: 'Încheiat', respins: 'Respins', inchisa: 'Închisă' };
   const TYPES = { casa: 'Casă unifamilială', ansamblu: 'Ansamblu rezidențial', birouri: 'Clădire de birouri / comercială', hala: 'Hală / industrial', expertiza: 'Expertiză / consolidare', altceva: 'Altceva' };
   const SERVICES = { arh_rez: 'Arhitectură + Rezistență', arh: 'Doar arhitectură', rez: 'Doar rezistență', nu_stiu: 'Nu știu încă' };
 
@@ -192,6 +192,15 @@
                 </select>
                 <span class="status-note" id="statusNote">Schimbat la ${esc(fmt(r.status_updated_at))}</span>
               </div>
+              <div class="reject-box" id="rejectBox" hidden>
+                <label class="admin-label" for="rejectNote">Motivul respingerii (obligatoriu)</label>
+                <textarea class="admin-input" id="rejectNote" rows="3" maxlength="1000"></textarea>
+                <div class="reject-actions">
+                  <button class="btn btn-sm btn-clay" id="rejectSave" type="button">Salvează „Respins”</button>
+                  <button class="btn btn-sm btn-ghost" id="rejectCancel" type="button">Anulează</button>
+                </div>
+              </div>
+              <p class="status-comment" id="statusComment"${r.status === 'respins' && r.status_comment ? '' : ' hidden'}>Motiv: ${esc(r.status_comment || '')}</p>
             </dd>
             <dt>Telefon</dt><dd><a href="tel:${esc(phone)}">${esc(r.phone)}</a></dd>
             <dt>Email</dt><dd><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></dd>
@@ -215,23 +224,46 @@
 
   function bindStatus(r) {
     const sel = $('#statusSel'), note = $('#statusNote');
+    const box = $('#rejectBox'), text = $('#rejectNote'), shown = $('#statusComment');
     let current = r.status;
-    sel.addEventListener('change', async () => {
-      const next = sel.value;
-      sel.disabled = true;
+
+    async function save(next, comment = '') {
+      sel.disabled = true; $('#rejectSave').disabled = true;
       note.className = 'status-note'; note.textContent = 'Se salvează…';
       try {
         const { item } = await api('/api/admin/requests/' + encodeURIComponent(r.id), {
-          method: 'PATCH', body: JSON.stringify({ status: next }),
+          method: 'PATCH', body: JSON.stringify({ status: next, comment }),
         });
         current = item.status;
+        box.hidden = true;
+        shown.hidden = !(item.status === 'respins' && item.status_comment);
+        shown.textContent = `Motiv: ${item.status_comment || ''}`;
         note.className = 'status-note ok'; note.textContent = `✓ Salvat · ${fmt(item.status_updated_at)}`;
       } catch (err) {
         sel.value = current;
         onError(err, () => { note.className = 'status-note err'; note.textContent = 'Nu am putut salva statusul. Reîncercați.'; });
       } finally {
-        sel.disabled = false;
+        sel.disabled = false; $('#rejectSave').disabled = false;
       }
+    }
+
+    // „Respins” se salvează doar împreună cu motivul; restul statusurilor, imediat
+    sel.addEventListener('change', () => {
+      if (sel.value === 'respins') {
+        box.hidden = false; text.value = ''; text.focus();
+        note.className = 'status-note'; note.textContent = 'Scrieți motivul și apăsați Salvează.';
+      } else {
+        box.hidden = true;
+        save(sel.value);
+      }
+    });
+    $('#rejectSave').addEventListener('click', () => {
+      if (!text.value.trim()) { note.className = 'status-note err'; note.textContent = 'Motivul e obligatoriu la „Respins”.'; text.focus(); return; }
+      save('respins', text.value);
+    });
+    $('#rejectCancel').addEventListener('click', () => {
+      box.hidden = true; sel.value = current;
+      note.className = 'status-note'; note.textContent = '';
     });
   }
 

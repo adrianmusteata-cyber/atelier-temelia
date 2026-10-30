@@ -83,6 +83,10 @@ body.admin {
 .badge.s-noua { background: var(--clay); color: #fff; }
 .badge.s-in_lucru { background: #E7D9B6; color: #6A5214; }
 .badge.s-inchisa { background: var(--sand); color: var(--ink-2); }
+.badge.s-procesat { background: #DCE6F0; color: #24425E; }
+.badge.s-avans { background: #F3DDB0; color: #6B4A08; }
+.badge.s-incheiat { background: #D7E8CF; color: #2F5222; }
+.badge.s-respins { background: #F2D3CC; color: #8A2E1C; }
 
 /* Detalii */
 .back { display: inline-block; margin-bottom: 18px; font-weight: 600; color: var(--clay-d); }
@@ -99,6 +103,11 @@ body.admin {
 .status-note { font-size: .86rem; color: var(--ink-2); }
 .status-note.ok { color: #3E5A2A; }
 .status-note.err { color: var(--clay-d); }
+.reject-box { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; max-width: 520px; }
+.reject-box textarea { resize: vertical; min-height: 80px; }
+.reject-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-comment { margin-top: 10px; font-size: .92rem; color: #8A2E1C; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (min-width: 700px) { .status-filter { flex-wrap: wrap; overflow: visible; } }
 
 @media (max-width: 600px) {
   .admin-main { padding-top: 22px; }

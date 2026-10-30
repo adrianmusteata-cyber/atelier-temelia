@@ -1,5 +1,6 @@
 /* GET   /api/admin/requests/:id            — toate detaliile unei cereri
-   PATCH /api/admin/requests/:id { status }  — schimbă statusul */
+   PATCH /api/admin/requests/:id { status, comment }  — schimbă statusul;
+         la „respins” comentariul (motivul) e obligatoriu */
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin } = require('../../_lib/auth');
@@ -21,11 +22,14 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, item });
     }
 
-    const status = (jsonBody(req) || {}).status;
+    const body = jsonBody(req) || {};
+    const status = body.status;
+    const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
     if (!STATUSES[status]) return res.status(400).json({ ok: false, error: 'status' });
+    if (status === 'respins' && !comment) return res.status(400).json({ ok: false, error: 'comment' });
     const [item] = await rest(`requests?id=eq.${id}`, {
       method: 'PATCH',
-      body: { status, status_updated_at: new Date().toISOString() },
+      body: { status, status_comment: comment, status_updated_at: new Date().toISOString() },
       prefer: 'return=representation',
     });
     if (!item) return res.status(404).json({ ok: false, error: 'notfound' });
