@@ -1,38 +1,87 @@
-/* GET /api/admin/requests?status=<status|toate>&cursor=<created_at>
-   Lista cererilor, cele mai noi primele, câte 50, plus numărul pe fiecare status. */
+/* GET  /api/admin/requests?status=<status|toate>&cursor=<created_at>
+        Lista cererilor, cele mai noi primele, câte 50, plus numărul pe fiecare status.
+   GET  /api/admin/requests?all=1 — toți clienții deodată, pentru tabla pâlniei (maximum 1000).
+   POST /api/admin/requests { name, phone, email?, type?, service?, status?, notes? }
+        — client adăugat manual (apel, întâlnire), cu sursa „manual”. */
 const { rest } = require('../../_lib/db');
-const { allow } = require('../../_lib/http');
+const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin } = require('../../_lib/auth');
-const { STATUSES } = require('../../_lib/labels');
+const { TYPES, SERVICES, STATUSES } = require('../../_lib/labels');
 
 const PAGE = 50;
+const BOARD_MAX = 1000;
+const FIELDS = 'id,created_at,name,phone,type,service,status,source,status_updated_at';
+const LIMITS = { name: 100, phone: 30, email: 150, notes: 5000 };
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-module.exports = async function handler(req, res) {
-  if (!allow(req, res, ['GET'])) return;
-  if (!requireAdmin(req, res)) return;
+const str = v => (typeof v === 'string' ? v.trim() : '');
+
+// Întoarce { data } sau { errors: [câmpuri greșite] }. Obligatorii: doar numele și telefonul.
+function validateManual(body) {
+  const data = {
+    name: str(body.name),
+    phone: str(body.phone),
+    email: str(body.email),
+    type: str(body.type),
+    service: str(body.service),
+    notes: str(body.notes),
+    status: str(body.status) || 'noua',
+    source: 'manual',
+  };
+  const errors = [];
+  if (!data.name) errors.push('name');
+  if (!data.phone) errors.push('phone');
+  if (data.email && !EMAIL_RE.test(data.email)) errors.push('email');
+  for (const [f, max] of Object.entries(LIMITS)) if (data[f].length > max) errors.push(f);
+  if (data.type && !TYPES[data.type]) errors.push('type');
+  if (data.service && !SERVICES[data.service]) errors.push('service');
+  // „Respins” cere motiv: se alege abia după creare, din fișa clientului
+  if (!STATUSES[data.status] || data.status === 'respins') errors.push('status');
+  return errors.length ? { errors: [...new Set(errors)] } : { data };
+}
+
+async function list(req, res) {
+  if (req.query.all) {
+    const items = await rest(`requests?select=${FIELDS}&order=created_at.desc&limit=${BOARD_MAX}`);
+    return res.status(200).json({ ok: true, items });
+  }
 
   const status = STATUSES[req.query.status] ? req.query.status : 'toate';
   const cursor = typeof req.query.cursor === 'string' && !isNaN(Date.parse(req.query.cursor)) ? req.query.cursor : null;
 
-  let q = `requests?select=id,created_at,name,phone,type,service,status&order=created_at.desc&limit=${PAGE + 1}`;
+  let q = `requests?select=${FIELDS}&order=created_at.desc&limit=${PAGE + 1}`;
   if (status !== 'toate') q += `&status=eq.${status}`;
   if (cursor) q += `&created_at=lt.${encodeURIComponent(cursor)}`;
 
+  const [items, all] = await Promise.all([rest(q), rest('requests?select=status')]);
+  const counts = { toate: all.length };
+  Object.keys(STATUSES).forEach(s => { counts[s] = 0; });
+  all.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+  const more = items.length > PAGE;
+  const page = items.slice(0, PAGE);
+  return res.status(200).json({
+    ok: true,
+    items: page,
+    counts,
+    nextCursor: more ? page[page.length - 1].created_at : null,
+  });
+}
+
+async function create(req, res) {
+  const { data, errors } = validateManual(jsonBody(req) || {});
+  if (errors) return res.status(400).json({ ok: false, error: 'invalid', fields: errors });
+  const [item] = await rest('requests', { method: 'POST', body: data, prefer: 'return=representation' });
+  return res.status(201).json({ ok: true, item });
+}
+
+module.exports = async function handler(req, res) {
+  if (!allow(req, res, ['GET', 'POST'])) return;
+  if (!requireAdmin(req, res)) return;
   try {
-    const [items, all] = await Promise.all([rest(q), rest('requests?select=status')]);
-    const counts = { toate: all.length };
-    Object.keys(STATUSES).forEach(s => { counts[s] = 0; });
-    all.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
-    const more = items.length > PAGE;
-    const page = items.slice(0, PAGE);
-    return res.status(200).json({
-      ok: true,
-      items: page,
-      counts,
-      nextCursor: more ? page[page.length - 1].created_at : null,
-    });
+    return await (req.method === 'POST' ? create(req, res) : list(req, res));
   } catch (e) {
-    console.error('Citirea cererilor a eșuat:', e.message);
+    console.error('Operația pe clienți a eșuat:', e.message);
     return res.status(502).json({ ok: false, error: 'db' });
   }
 };
+module.exports.validateManual = validateManual;

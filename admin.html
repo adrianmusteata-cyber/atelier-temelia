@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#F4F0E8">
-  <title>Cereri — LUXARCH</title>
+  <title>Clienți — LUXARCH</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Manrope:wght@400;500;600;700&display=swap&subset=cyrillic,latin-ext" rel="stylesheet">
@@ -18,18 +18,18 @@
     <div class="container admin-bar-inner">
       <a class="brand" href="/admin">
         <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 27 V16 a9 9 0 0 1 18 0 V27" /><path d="M3 27 H29" /><circle cx="16" cy="17" r="2.6" /></svg>
-        <span>Cereri <em>LUXARCH</em></span>
+        <span>CRM <em>LUXARCH</em></span>
       </a>
       <button class="btn btn-sm btn-ghost" id="logout" hidden>Ieșire</button>
     </div>
   </header>
 
-  <main class="container admin-main">
+  <main class="container admin-main" id="main">
     <!-- Autentificare -->
     <section id="view-login" class="admin-view" hidden>
       <form class="login-card" id="loginForm">
         <h1>Panou de administrare</h1>
-        <p class="muted">Introduceți parola ca să vedeți cererile.</p>
+        <p class="muted">Introduceți parola ca să vedeți clienții.</p>
         <label class="admin-label" for="pw">Parolă</label>
         <input class="admin-input" id="pw" type="password" autocomplete="current-password" required>
         <label class="show-pw"><input type="checkbox" id="showPw"> Arată parola</label>
@@ -38,21 +38,72 @@
       </form>
     </section>
 
+    <!-- Comune pentru tablă și listă -->
+    <div class="admin-head" id="toolbar" hidden>
+      <h1 class="admin-title">Clienți</h1>
+      <div class="admin-tools">
+        <nav class="view-switch" id="viewSwitch" aria-label="Mod de afișare">
+          <a class="filter" href="/admin" data-view="board">Tablă</a>
+          <a class="filter" href="/admin?view=list" data-view="list">Listă</a>
+        </nav>
+        <a class="btn btn-sm" href="/admin?new=1" id="addBtn">+ Client nou</a>
+      </div>
+    </div>
+
+    <!-- Tabla pâlniei de vânzări -->
+    <section id="view-board" class="admin-view" hidden>
+      <p class="admin-msg" id="boardMsg" role="status"></p>
+      <div class="board" id="board"></div>
+    </section>
+
     <!-- Lista -->
     <section id="view-list" class="admin-view" hidden>
-      <h1 class="admin-title">Cereri</h1>
-      <nav class="status-filter" id="filter" aria-label="Filtru după status"></nav>
+      <nav class="status-filter" id="filter" aria-label="Filtru după etapă"></nav>
       <p class="admin-msg" id="listMsg" role="status"></p>
       <ul class="req-list" id="list"></ul>
       <button class="btn btn-ghost btn-sm" id="more" hidden>Mai multe</button>
     </section>
 
-    <!-- Detaliile unei cereri -->
+    <!-- Client adăugat manual -->
+    <section id="view-new" class="admin-view" hidden>
+      <a class="back" id="backNew" href="/admin">← Înapoi</a>
+      <form class="detail-card new-form" id="newForm" novalidate>
+        <h1>Client nou</h1>
+        <p class="muted">Adăugat manual, după un apel sau o întâlnire. Sursa va fi „Manual”.</p>
+        <div class="new-grid">
+          <label class="new-field"><span class="admin-label">Nume *</span><input class="admin-input" name="name" maxlength="100" autocomplete="off" required></label>
+          <label class="new-field"><span class="admin-label">Telefon *</span><input class="admin-input" name="phone" type="tel" maxlength="30" autocomplete="off" required></label>
+          <label class="new-field"><span class="admin-label">Email</span><input class="admin-input" name="email" type="email" maxlength="150" autocomplete="off"></label>
+          <label class="new-field"><span class="admin-label">Etapă</span><select class="admin-input" name="status" id="newStatus"></select></label>
+          <label class="new-field"><span class="admin-label">Tip proiect</span><select class="admin-input" name="type" id="newType"></select></label>
+          <label class="new-field"><span class="admin-label">Servicii</span><select class="admin-input" name="service" id="newService"></select></label>
+          <label class="new-field new-field-wide"><span class="admin-label">Note</span><textarea class="admin-input" name="notes" rows="4" maxlength="5000"></textarea></label>
+        </div>
+        <button class="btn" type="submit" id="newBtn">Salvează clientul</button>
+        <p class="admin-msg" id="newMsg" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- Fișa clientului -->
     <section id="view-detail" class="admin-view" hidden>
-      <a class="back" id="back" href="/admin">← Înapoi la listă</a>
+      <a class="back" id="back" href="/admin">← Înapoi</a>
       <div id="detail"></div>
     </section>
   </main>
+
+  <!-- Motivul respingerii: cerut la orice mutare în „Respins” -->
+  <dialog class="reject-dialog" id="rejectDlg" aria-labelledby="rejectDlgTitle">
+    <form id="rejectDlgForm">
+      <h2 id="rejectDlgTitle">Motivul respingerii</h2>
+      <p class="muted" id="rejectDlgWho"></p>
+      <textarea class="admin-input" id="rejectDlgText" rows="4" maxlength="1000" aria-label="Motivul respingerii"></textarea>
+      <p class="admin-msg" id="rejectDlgMsg" role="alert"></p>
+      <div class="reject-actions">
+        <button class="btn btn-sm btn-clay" type="submit" value="ok">Salvează „Respins”</button>
+        <button class="btn btn-sm btn-ghost" type="submit" value="cancel">Anulează</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="admin.js"></script>
 </body>

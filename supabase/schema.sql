@@ -18,7 +18,9 @@ create table if not exists public.requests (
   status            text not null default 'noua'
                     check (status in ('noua', 'in_lucru', 'procesat', 'avans', 'incheiat', 'respins', 'inchisa')),
   status_comment    text not null default '',   -- motivul, obligatoriu la „respins”
-  status_updated_at timestamptz not null default now()
+  status_updated_at timestamptz not null default now(),
+  source            text not null default 'site' check (source in ('site', 'manual')),
+  notes             text not null default ''    -- notele interne din CRM
 );
 
 create index if not exists requests_created_at_idx on public.requests (created_at desc);
@@ -33,5 +35,36 @@ create table if not exists public.rate_hits (
 
 create index if not exists rate_hits_key_at_idx on public.rate_hits (key, at desc);
 
-alter table public.requests  enable row level security;
-alter table public.rate_hits enable row level security;
+-- Istoricul trecerilor între etape, scris de trigger la creare și la fiecare schimbare de etapă
+create table if not exists public.status_history (
+  id          bigint generated always as identity primary key,
+  request_id  uuid not null references public.requests (id) on delete cascade,
+  from_status text,                      -- null = clientul a fost creat direct în această etapă
+  to_status   text not null,
+  comment     text not null default '',
+  at          timestamptz not null default now()
+);
+
+create index if not exists status_history_request_idx on public.status_history (request_id, at);
+
+create or replace function public.log_status_change() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.status_history (request_id, from_status, to_status, comment, at)
+    values (new.id, null, new.status, new.status_comment, new.created_at);
+  elsif new.status is distinct from old.status then
+    insert into public.status_history (request_id, from_status, to_status, comment, at)
+    values (new.id, old.status, new.status, new.status_comment, new.status_updated_at);
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists requests_status_log on public.requests;
+create trigger requests_status_log
+  after insert or update of status on public.requests
+  for each row execute function public.log_status_change();
+
+alter table public.requests       enable row level security;
+alter table public.rate_hits      enable row level security;
+alter table public.status_history enable row level security;

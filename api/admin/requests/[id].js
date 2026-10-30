@@ -1,12 +1,15 @@
-/* GET   /api/admin/requests/:id            — toate detaliile unei cereri
-   PATCH /api/admin/requests/:id { status, comment }  — schimbă statusul;
-         la „respins” comentariul (motivul) e obligatoriu */
+/* GET   /api/admin/requests/:id  — fișa clientului, cu istoricul etapelor
+   PATCH /api/admin/requests/:id { status?, comment?, notes? }
+         — mută clientul în altă etapă (la „respins” motivul e obligatoriu)
+           și/sau îi salvează notele. Istoricul îl scrie trigger-ul din baza de date. */
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin } = require('../../_lib/auth');
 const { STATUSES } = require('../../_lib/labels');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const history = id => rest(`status_history?select=from_status,to_status,comment,at&request_id=eq.${id}&order=at.asc,id.asc`);
 
 module.exports = async function handler(req, res) {
   if (!allow(req, res, ['GET', 'PATCH'])) return;
@@ -17,23 +20,29 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const [item] = await rest(`requests?select=*&id=eq.${id}`);
+      const [[item], hist] = await Promise.all([rest(`requests?select=*&id=eq.${id}`), history(id)]);
       if (!item) return res.status(404).json({ ok: false, error: 'notfound' });
-      return res.status(200).json({ ok: true, item });
+      return res.status(200).json({ ok: true, item, history: hist });
     }
 
     const body = jsonBody(req) || {};
-    const status = body.status;
-    const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
-    if (!STATUSES[status]) return res.status(400).json({ ok: false, error: 'status' });
-    if (status === 'respins' && !comment) return res.status(400).json({ ok: false, error: 'comment' });
-    const [item] = await rest(`requests?id=eq.${id}`, {
-      method: 'PATCH',
-      body: { status, status_comment: comment, status_updated_at: new Date().toISOString() },
-      prefer: 'return=representation',
-    });
+    const patch = {};
+    if ('notes' in body) {
+      if (typeof body.notes !== 'string') return res.status(400).json({ ok: false, error: 'notes' });
+      patch.notes = body.notes.trim().slice(0, 5000);
+    }
+    if ('status' in body) {
+      const status = body.status;
+      const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
+      if (!STATUSES[status]) return res.status(400).json({ ok: false, error: 'status' });
+      if (status === 'respins' && !comment) return res.status(400).json({ ok: false, error: 'comment' });
+      Object.assign(patch, { status, status_comment: comment, status_updated_at: new Date().toISOString() });
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ ok: false, error: 'empty' });
+
+    const [item] = await rest(`requests?id=eq.${id}`, { method: 'PATCH', body: patch, prefer: 'return=representation' });
     if (!item) return res.status(404).json({ ok: false, error: 'notfound' });
-    return res.status(200).json({ ok: true, item });
+    return res.status(200).json({ ok: true, item, history: await history(id) });
   } catch (e) {
     console.error('Operația pe cerere a eșuat:', e.message);
     return res.status(502).json({ ok: false, error: 'db' });

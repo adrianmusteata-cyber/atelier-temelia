@@ -103,15 +103,82 @@ body.admin {
 .status-note { font-size: .86rem; color: var(--ink-2); }
 .status-note.ok { color: #3E5A2A; }
 .status-note.err { color: var(--clay-d); }
-.reject-box { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; max-width: 520px; }
-.reject-box textarea { resize: vertical; min-height: 80px; }
 .reject-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .status-comment { margin-top: 10px; font-size: .92rem; color: #8A2E1C; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (min-width: 700px) { .status-filter { flex-wrap: wrap; overflow: visible; } }
 
+/* Antet comun tablă / listă */
+.admin-main.is-wide { width: min(1680px, 100% - 32px); }
+.admin-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-bottom: 14px; }
+.admin-head .admin-title { margin-bottom: 0; }
+.admin-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.view-switch { display: flex; gap: 6px; }
+
+/* Tabla pâlniei: coloanele derulează orizontal în interiorul ei, pagina nu */
+.board {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(min(250px, 78vw), 1fr); gap: 12px;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding-bottom: 14px;
+}
+.col {
+  display: flex; flex-direction: column; min-width: 0; scroll-snap-align: start;
+  border-radius: 18px; background: var(--bg-2); border: 1px dashed transparent; transition: border-color .2s, background .2s;
+}
+.col.is-over { border-color: var(--clay); background: #F1E6D6; }
+.col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 12px 6px; }
+.col-head .count { font-size: .86rem; font-weight: 600; color: var(--ink-2); }
+.col-body { display: flex; flex-direction: column; gap: 8px; padding: 6px 8px 10px; min-height: 120px; }
+.col.is-empty .col-body::after { content: 'Trageți un client aici'; margin: auto; font-size: .84rem; color: var(--dim); text-align: center; }
+.card {
+  display: grid; gap: 4px; padding: 12px 12px 10px; border-radius: 14px; background: #fff; border: 1px solid var(--line);
+  cursor: grab; transition: border-color .2s, box-shadow .2s, opacity .2s;
+}
+.card:hover { border-color: var(--ink-2); }
+.card.is-new { box-shadow: inset 4px 0 0 var(--clay); }
+.card.is-drag { opacity: .45; cursor: grabbing; }
+.card-name { font-family: var(--serif); font-size: 1.15rem; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.card-meta { font-size: .88rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .78rem; color: var(--dim); }
+.card-move {
+  margin-top: 6px; width: 100%; font: inherit; font-size: 16px; color: var(--ink-2); cursor: pointer;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px;
+}
+.card-move:focus { outline: none; border-color: var(--clay); }
+
+/* Sursa clientului */
+.src { display: inline-block; font-size: .7rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+.src-site { background: #DCE6F0; color: #24425E; }
+.src-manual { background: var(--sand); color: var(--ink-2); }
+.detail-card > .muted .src { margin-right: 6px; vertical-align: 1px; }
+
+/* Client nou */
+.new-form h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); margin-bottom: 6px; }
+.new-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 22px 0; }
+.new-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.new-field-wide { grid-column: 1 / -1; }
+.new-field textarea, .notes { resize: vertical; min-height: 96px; width: 100%; }
+
+/* Note și istoric în fișă */
+.notes-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
+.history { display: grid; gap: 10px; }
+.history li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.history time { font-size: .86rem; color: var(--ink-2); min-width: 140px; }
+.history-step { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.history-note { flex-basis: 100%; font-size: .9rem; color: #8A2E1C; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Dialogul pentru motivul respingerii */
+.reject-dialog {
+  width: min(480px, 100% - 32px); padding: 26px 24px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: #fff; color: var(--ink);
+}
+.reject-dialog::backdrop { background: rgba(28, 24, 20, .45); }
+.reject-dialog form { display: flex; flex-direction: column; gap: 10px; }
+.reject-dialog h2 { font-size: 1.8rem; font-weight: 500; }
+.reject-dialog textarea { resize: vertical; min-height: 96px; }
+
 @media (max-width: 600px) {
   .admin-main { padding-top: 22px; }
   .detail-grid { grid-template-columns: 1fr; }
+  .new-grid { grid-template-columns: 1fr; }
   .detail-grid dd { border-top: 0; padding-top: 0; }
   .login-card { margin-top: 4vh; padding: 28px 22px; }
 }

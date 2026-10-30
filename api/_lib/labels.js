@@ -1,4 +1,4 @@
-/* Valorile fixe din formular și statusurile cererilor, cu textul românesc */
+/* Valorile fixe din formular, etapele pâlniei de vânzări și sursele, cu textul românesc */
 
 const TYPES = {
   casa: 'Casă unifamilială',
@@ -26,4 +26,9 @@ const STATUSES = {
   inchisa: 'Închisă',
 };
 
-module.exports = { TYPES, SERVICES, STATUSES };
+const SOURCES = {
+  site: 'Site web',
+  manual: 'Manual',
+};
+
+module.exports = { TYPES, SERVICES, STATUSES, SOURCES };
