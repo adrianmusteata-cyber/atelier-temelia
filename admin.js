@@ -887,6 +887,7 @@
   }
 
   function showReview(type, fields, dupes) {
+    $('#docTypePick')?.remove();
     doc.type = type;
     $('#docType').value = type;
     $('#docMessageField').hidden = type !== 'chestionar';
@@ -948,21 +949,28 @@
   $('#docRead').addEventListener('click', () => readDoc(null));
   $('#docRetry').addEventListener('click', () => { step('pick'); readDoc(doc.forced); });
   $('#docManual').addEventListener('click', () => showReview('carte_vizita', null, []));
+  // Tipul recunoscut nu are încă secțiune: se alege altul, iar Claude recitește documentul
   $('#docChangeType').addEventListener('click', () => {
-    showReview(DOC_TYPES[doc.type]?.ready ? doc.type : 'carte_vizita', null, []);
+    showReview('carte_vizita', null, []);
+    doc.type = '';
+    $('#docType').insertAdjacentHTML('afterbegin', '<option value="" id="docTypePick">— alegeți tipul —</option>');
+    $('#docType').value = '';
+    $('#docHint').textContent = 'Alegeți tipul corect; documentul se citește din nou.';
     $('#docType').focus();
   });
 
   // Alt tip: Claude recitește documentul pentru tipul ales (sau doar se schimbă câmpurile, la completare manuală)
   $('#docType').addEventListener('change', async e => {
     const next = e.target.value;
+    if (!next) return;
     if (!DOC_TYPES[next].ready) {
       e.target.value = doc.type;
       $('#docHint').textContent = `„${DOC_TYPES[next].label}”: secțiunea nu e gata încă.`;
       return;
     }
     if (!doc.files.length) { doc.type = next; $('#docMessageField').hidden = next !== 'chestionar'; return; }
-    if (!confirm('Schimbi tipul? Câmpurile se citesc din nou.')) { e.target.value = doc.type; return; }
+    if (doc.type && !confirm('Schimbi tipul? Câmpurile se citesc din nou.')) { e.target.value = doc.type; return; }
+    $('#docTypePick')?.remove();
     step('pick');
     await readDoc(next);
   });
@@ -970,6 +978,7 @@
   docForm.addEventListener('submit', async e => {
     e.preventDefault();
     const fields = Object.fromEntries(new FormData(docForm));
+    if (!doc.type) { docMsg.textContent = 'Alegeți tipul documentului.'; $('#docType').focus(); return; }
     if (doc.type !== 'chestionar') fields.message = '';
     if (!fields.name.trim()) { docMsg.textContent = 'Numele e obligatoriu.'; docForm.elements.name.focus(); return; }
     if (!fields.phone.trim() && !fields.email.trim()) { docMsg.textContent = 'Completează telefonul sau emailul.'; docForm.elements.phone.focus(); return; }
