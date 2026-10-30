@@ -937,6 +937,7 @@
         if (e2.status === 'storage') { step('pick'); docMsg.textContent = 'Nu s-a putut încărca fișierul. Încearcă din nou.'; return; }
         if (e2.status === 429) { step('pick'); docMsg.textContent = 'Prea multe citiri într-o oră. Încearcă mai târziu sau completează manual.'; return; }
         if (e2.status === 400) { dropUpload(); step('pick'); docMsg.textContent = e2.message === 'pages' ? 'PDF-ul are mai mult de 20 de pagini.' : 'Fișierul nu e acceptat (tip sau mărime).'; return; }
+        $('#docErrDetail').textContent = e2.data?.detail ? `Detaliu tehnic: ${e2.data.detail}` : '';
         step('error');
       });
     } finally {

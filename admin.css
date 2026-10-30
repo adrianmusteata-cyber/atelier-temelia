@@ -246,3 +246,4 @@ body.admin {
   .bar-actions .btn { padding-inline: 12px; }
   .doc-dialog { padding: 18px 14px; }
 }
+.doc-detail { overflow-wrap: anywhere; font-size: .8rem; }

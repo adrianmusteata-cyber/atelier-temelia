@@ -159,7 +159,8 @@ async function read(body, res) {
     result = await readDocument(pages, forced);
   } catch (e) {
     console.error('Citirea cu Claude a eșuat:', e.message);
-    return res.status(502).json({ ok: false, error: 'claude' });
+    // Detaliul (fără cheie) îl vede doar adminul, ca să se poată afla cauza fără jurnalele Vercel
+    return res.status(502).json({ ok: false, error: 'claude', detail: e.message.slice(0, 300) });
   }
 
   if (!result.doc_type) {
@@ -235,7 +236,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error(`Documente (${action}) a eșuat:`, e.message);
-    return res.status(502).json({ ok: false, error: 'db' });
+    return res.status(502).json({ ok: false, error: 'db', detail: e.message.slice(0, 300) });
   }
 };
 module.exports.toFields = toFields;
