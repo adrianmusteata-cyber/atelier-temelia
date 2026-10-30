@@ -1,6 +1,6 @@
 /* Notificări către proprietar: Telegram și (opțional) email prin Resend.
    Variabile: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
-              TELEGRAM_PAYMENTS_CHAT_ID (chatul „Achitări”; dacă lipsește, plățile merg în TELEGRAM_CHAT_ID),
+              TELEGRAM_PAYMENTS_CHAT_ID (chatul separat „Achitări”; plățile nu ajung niciodată în chatul cererilor),
               RESEND_API_KEY, OWNER_EMAIL, MAIL_FROM (emailul e sărit dacă lipsesc) */
 const { TYPES, SERVICES, STATUSES, CHANNELS } = require('./labels');
 
@@ -89,7 +89,12 @@ async function sendTelegram(text, chatId = process.env.TELEGRAM_CHAT_ID) {
   if (!r.ok) throw new Error(`Telegram ${r.status}: ${await r.text()}`);
 }
 
-const sendPayment = text => sendTelegram(text, process.env.TELEGRAM_PAYMENTS_CHAT_ID || process.env.TELEGRAM_CHAT_ID);
+// Plățile merg doar în chatul „Achitări”; cât timp nu e setat, mesajul nu se trimite nicăieri
+async function sendPayment(text) {
+  const chatId = process.env.TELEGRAM_PAYMENTS_CHAT_ID;
+  if (!chatId) throw new Error('Lipsește TELEGRAM_PAYMENTS_CHAT_ID: anunțul de plată nu s-a trimis');
+  return sendTelegram(text, chatId);
+}
 
 // Notificările din panou nu au voie să strice salvarea: doar se scriu în log dacă eșuează
 async function notifySafely(jobs) {
