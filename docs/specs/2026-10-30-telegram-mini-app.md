@@ -3,7 +3,7 @@
 ## Pe scurt
 Un bot Telegram nou, separat de cel cu notificările, are un buton de meniu care deschide **panoul de admin actual** în Telegram, pe tot ecranul, fără parolă. Omul e recunoscut după datele semnate de Telegram (`initData`), pe care serverul le verifică la fiecare cerere. **Proprietarul** vede tot, ca în browser. **Angajații** văd doar pâlnia (cardurile, schimbarea etapei, notele, adăugarea de clienți) și scanerul de documente, fără sume, plăți, Financiar, Scadențe, Catalog și rapoarte. Serverul aplică aceste limite, nu doar interfața.
 
-**Nu se adaugă funcții Vercel:** rămânem la 12 din 12 pe planul Hobby. **Nu e nevoie de migrare SQL.**
+**Nu se adaugă funcții Vercel:** rămânem la 12 din 12 pe planul Hobby. Prima versiune nu a cerut migrare SQL; sursa „Telegram” și autorul acțiunilor (@username) au adăugat ulterior migrarea `supabase/migrations/2026-10-30-telegram-autor.sql` (rulată).
 
 ## Pornim de la ce există
 - `admin.html` + `admin.js`, `admin-fin.js`, `admin-dues.js`, `admin-cat.js`: tabla pâlniei, lista, fișa clientului, „Client nou”, „Încarcă document”, Financiar, Scadențe, Catalog. Toate cererile trec prin `api()` din `admin.js`.

@@ -505,3 +505,11 @@ h1 em, h2 em, h3 em, .facts-list em { font-style: italic; color: var(--lux); }
   .marquee-track { animation: none; }
   .steps::after { transform: none; }
 }
+
+/* Rusă pe ecrane înguste: „Конструкция.” e mai lung decât „Structură.”, iar titlurile serviciilor au cuvinte lungi */
+@media (max-width: 600px) {
+  html[lang="ru"] .hero-title { font-size: clamp(2.6rem, 14.5vw, 6rem); }
+  .svc, .svc-list > * { min-width: 0; }
+  .svc h3, .svc li { overflow-wrap: anywhere; hyphens: auto; }
+  html[lang="ru"] .svc h3 { font-size: clamp(1.5rem, 7.5vw, 2.8rem); }
+}
