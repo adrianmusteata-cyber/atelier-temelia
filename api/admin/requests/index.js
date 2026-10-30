@@ -1,6 +1,8 @@
 /* GET  /api/admin/requests?status=<status|toate>&cursor=<created_at>
         Lista cererilor, cele mai noi primele, câte 50, plus numărul pe fiecare status.
    GET  /api/admin/requests?all=1 — toți clienții deodată, pentru tabla pâlniei (maximum 1000).
+   GET  /api/admin/requests?me=1 — doar rolul, cerut de Mini App la pornire.
+        Orice GET întoarce și `role` (owner | staff); angajatul primește clienții fără câmpurile cu bani.
    POST /api/admin/requests { name, phone, channel, email?, type?, service?, status?, notes? }
         — client adăugat manual, cu sursa „manual” și canalul „apel” sau „intalnire”. */
 const { rest } = require('../../_lib/db');
@@ -8,11 +10,14 @@ const { allow, jsonBody } = require('../../_lib/http');
 const { requireAdmin } = require('../../_lib/auth');
 const { TYPES, SERVICES, STATUSES, CHANNELS } = require('../../_lib/labels');
 const { receivablesWithState } = require('../../_lib/dues');
+const { stripMoney } = require('../../_lib/staff');
 const { manualClientText, paymentText, isPayment, sendTelegram, sendPayment, notifySafely } = require('../../_lib/notify');
 
 const PAGE = 50;
 const BOARD_MAX = 1000;
 const FIELDS = 'id,created_at,name,phone,email,type,service,status,source,channel,status_updated_at,contract_value,currency,payments(amount)';
+// Angajatul: aceleași coloane fără valoarea contractului, monedă și plăți (nici nu se cer din bază)
+const STAFF_FIELDS = 'id,created_at,name,phone,email,type,service,status,source,channel,status_updated_at';
 const LIMITS = { name: 100, phone: 30, email: 150, notes: 5000 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -50,7 +55,15 @@ const withTotals = items => items.map(({ payments, ...r }) => ({
   paid_total: Math.round((payments || []).reduce((s, p) => s + Number(p.amount), 0) * 100) / 100,
 }));
 
-async function list(req, res) {
+async function list(req, res, role) {
+  if (req.query.me) return res.status(200).json({ ok: true, role });
+  const staff = role === 'staff';
+  const fields = staff ? STAFF_FIELDS : FIELDS;
+  // Tabla angajatului: fără totaluri plătite și fără „Restant” (ratele de încasat nu se citesc deloc)
+  if (req.query.all && staff) {
+    const items = await rest(`requests?select=${fields}&order=created_at.desc&limit=${BOARD_MAX}`);
+    return res.status(200).json({ ok: true, role, items });
+  }
   if (req.query.all) {
     const [items, recs] = await Promise.all([
       rest(`requests?select=${FIELDS}&order=created_at.desc&limit=${BOARD_MAX}`),
@@ -58,13 +71,13 @@ async function list(req, res) {
     ]);
     // Clienții cu cel puțin o rată de încasat restantă primesc eticheta „Restant” pe tablă
     const overdue = new Set(recs.filter(r => r.state === 'overdue').map(r => r.request_id));
-    return res.status(200).json({ ok: true, items: withTotals(items).map(r => ({ ...r, overdue: overdue.has(r.id) })) });
+    return res.status(200).json({ ok: true, role, items: withTotals(items).map(r => ({ ...r, overdue: overdue.has(r.id) })) });
   }
 
   const status = STATUSES[req.query.status] ? req.query.status : 'toate';
   const cursor = typeof req.query.cursor === 'string' && !isNaN(Date.parse(req.query.cursor)) ? req.query.cursor : null;
 
-  let q = `requests?select=${FIELDS}&order=created_at.desc&limit=${PAGE + 1}`;
+  let q = `requests?select=${fields}&order=created_at.desc&limit=${PAGE + 1}`;
   if (status !== 'toate') q += `&status=eq.${status}`;
   if (cursor) q += `&created_at=lt.${encodeURIComponent(cursor)}`;
 
@@ -73,16 +86,17 @@ async function list(req, res) {
   Object.keys(STATUSES).forEach(s => { counts[s] = 0; });
   all.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
   const more = items.length > PAGE;
-  const page = withTotals(items.slice(0, PAGE));
+  const page = staff ? items.slice(0, PAGE) : withTotals(items.slice(0, PAGE));
   return res.status(200).json({
     ok: true,
+    role,
     items: page,
     counts,
     nextCursor: more ? page[page.length - 1].created_at : null,
   });
 }
 
-async function create(req, res) {
+async function create(req, res, role) {
   const { data, errors } = validateManual(jsonBody(req) || {});
   if (errors) return res.status(400).json({ ok: false, error: 'invalid', fields: errors });
   const [item] = await rest('requests', { method: 'POST', body: data, prefer: 'return=representation' });
@@ -90,14 +104,16 @@ async function create(req, res) {
   const jobs = [sendTelegram(manualClientText(item))];
   if (isPayment(item.status)) jobs.push(sendPayment(paymentText(item)));
   await notifySafely(jobs);
-  return res.status(201).json({ ok: true, item });
+  return res.status(201).json({ ok: true, item: role === 'staff' ? stripMoney(item) : item });
 }
 
 module.exports = async function handler(req, res) {
   if (!allow(req, res, ['GET', 'POST'])) return;
-  if (!requireAdmin(req, res)) return;
+  // Pâlnia e deschisă și angajaților, fără bani
+  const role = requireAdmin(req, res, { staff: true });
+  if (!role) return;
   try {
-    return await (req.method === 'POST' ? create(req, res) : list(req, res));
+    return await (req.method === 'POST' ? create(req, res, role) : list(req, res, role));
   } catch (e) {
     console.error('Operația pe clienți a eșuat:', e.message);
     return res.status(502).json({ ok: false, error: 'db' });

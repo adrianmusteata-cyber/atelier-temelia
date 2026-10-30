@@ -10,7 +10,10 @@
         — lista de prețuri: fields = { supplier: { id } | { name, idno }, list_date, currency, note,
           rows: [{ include, code, name, unit, price, resolve: '' | 'new' | <product_id> }] } → { id: furnizorul, list_id, summary }
    POST /api/admin/docs/cancel { token } — șterge fișierele temporare
-   GET  /api/admin/docs/open?id=<document> → { url } — link de citire valabil 5 minute */
+   GET  /api/admin/docs/open?id=<document> → { url } — link de citire valabil 5 minute
+   Angajatul (Mini App Telegram): citește și salvează doar cărți de vizită, chestionare, avize și chitanțe.
+   Celelalte tipuri → { supported: false, reason: 'owner_only' } la read (fără citire dacă tipul e ales de el)
+   și 403 owner_only la save; duplicatele cheltuielilor vin fără sumă și fără id; open doar pentru documentele clienților. */
 const crypto = require('crypto');
 const { rest } = require('../../_lib/db');
 const { allow, jsonBody } = require('../../_lib/http');
@@ -22,6 +25,7 @@ const store = require('../../_lib/storage');
 const expenses = require('../../_lib/expenses');
 const dues = require('../../_lib/dues');
 const catalog = require('../../_lib/catalog');
+const { STAFF_DOC_TYPES, expenseDupes } = require('../../_lib/staff');
 
 // Tipurile care devin cheltuieli; restul (carte de vizită, chestionar) devin clienți în CRM
 const EXPENSE_TYPES = ['aviz', 'chitanta'];
@@ -148,7 +152,13 @@ async function upload(body, res) {
   return res.status(200).json({ ok: true, token, uploads });
 }
 
-async function read(body, res) {
+// Tipul pe care angajatul nu îl poate salva: fișierele temporare se șterg, câmpurile nu pleacă spre el
+async function ownerOnly(token, docType, res) {
+  await dropTmp(token);
+  return res.status(200).json({ ok: true, doc_type: docType, supported: false, reason: 'owner_only' });
+}
+
+async function read(body, res, staff) {
   const started = Date.now();
   let forced = body.doc_type ? String(body.doc_type) : null;
   if (forced && !DOC_TYPES[forced]) return res.status(400).json({ ok: false, error: 'doc_type' });
@@ -164,6 +174,8 @@ async function read(body, res) {
     if (forced && forced !== 'lista_preturi') return res.status(400).json({ ok: false, error: 'files' });
     forced = 'lista_preturi';
   }
+  // Tipul ales de angajat (sau PDF-ul mare, deci listă de prețuri): refuzul vine înainte de citirea cu Claude
+  if (staff && forced && !STAFF_DOC_TYPES.includes(forced)) return ownerOnly(body.token, forced, res);
 
   if (await countHits('ocr', 3600e3) >= OCR_PER_HOUR) return res.status(429).json({ ok: false, error: 'rate' });
 
@@ -190,6 +202,7 @@ async function read(body, res) {
     await dropTmp(body.token);
     return res.status(200).json({ ok: true, doc_type: null });
   }
+  if (staff && !STAFF_DOC_TYPES.includes(result.doc_type)) return ownerOnly(body.token, result.doc_type, res);
   if (!DOC_TYPES[result.doc_type].ready) {
     return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: false });
   }
@@ -211,7 +224,8 @@ async function read(body, res) {
   if (EXPENSE_TYPES.includes(result.doc_type)) {
     const fields = expenses.fieldsFromClaude(result.input);
     const check = expenses.validate(fields);
-    const duplicates = check.data ? await expenses.findDuplicates(check.data) : [];
+    const found = check.data ? await expenses.findDuplicates(check.data) : [];
+    const duplicates = staff ? expenseDupes(found) : found;
     return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates });
   }
   const fields = toFields(result.doc_type, result.input);
@@ -219,9 +233,10 @@ async function read(body, res) {
   return res.status(200).json({ ok: true, doc_type: result.doc_type, supported: true, fields, duplicates });
 }
 
-async function save(body, res) {
+async function save(body, res, staff) {
   const docType = String(body.doc_type || '');
   if (!DOC_TYPES[docType] || !DOC_TYPES[docType].ready) return res.status(400).json({ ok: false, error: 'doc_type' });
+  if (staff && !STAFF_DOC_TYPES.includes(docType)) return res.status(403).json({ ok: false, error: 'owner_only' });
 
   // Lista de prețuri: importul atomic în catalog, apoi documentul se leagă de lista creată
   if (docType === 'lista_preturi') {
@@ -274,7 +289,9 @@ async function save(body, res) {
 
   if (!body.force) {
     const duplicates = await lib.findDuplicates(data);
-    if (duplicates.length) return res.status(409).json({ ok: false, error: 'duplicate', duplicates });
+    if (duplicates.length) {
+      return res.status(409).json({ ok: false, error: 'duplicate', duplicates: staff && isExpense ? expenseDupes(duplicates) : duplicates });
+    }
   }
 
   let id, owner;
@@ -315,27 +332,31 @@ async function attachFiles(token, docType, id, owner) {
   }
 }
 
-async function open(req, res) {
+async function open(req, res, staff) {
   const id = String(req.query.id || '');
   if (!/^\d{1,18}$/.test(id)) return res.status(404).json({ ok: false, error: 'notfound' });
-  const [doc] = await rest(`documents?select=path&id=eq.${id}`);
-  if (!doc) return res.status(404).json({ ok: false, error: 'notfound' });
+  const [doc] = await rest(`documents?select=path,request_id&id=eq.${id}`);
+  // Angajatul deschide doar originalele legate de un client (carte de vizită, chestionar)
+  if (!doc || (staff && !doc.request_id)) return res.status(404).json({ ok: false, error: 'notfound' });
   return res.status(200).json({ ok: true, url: await store.signRead(doc.path, 300) });
 }
 
 module.exports = async function handler(req, res) {
   const action = String(req.query.action || '');
   if (!allow(req, res, action === 'open' ? ['GET'] : ['POST'])) return;
-  if (!requireAdmin(req, res)) return;
+  // Scanerul e deschis și angajaților, cu tipurile și câmpurile limitate mai sus
+  const role = requireAdmin(req, res, { staff: true });
+  if (!role) return;
+  const staff = role === 'staff';
   const body = jsonBody(req) || {};
 
   try {
-    if (action === 'open') return await open(req, res);
+    if (action === 'open') return await open(req, res, staff);
     if (action === 'upload') return await upload(body, res);
     if (!['read', 'save', 'cancel'].includes(action)) return res.status(404).json({ ok: false, error: 'notfound' });
     if (!UUID_RE.test(String(body.token || ''))) return res.status(400).json({ ok: false, error: 'token' });
-    if (action === 'read') return await read(body, res);
-    if (action === 'save') return await save(body, res);
+    if (action === 'read') return await read(body, res, staff);
+    if (action === 'save') return await save(body, res, staff);
     await dropTmp(body.token);
     return res.status(200).json({ ok: true });
   } catch (e) {

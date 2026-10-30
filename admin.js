@@ -3,9 +3,23 @@
    listă cu filtru, client nou adăugat manual, fișa clientului.
    Starea stă în adresă: /admin (tabla), /admin?view=list&status=noua,
    /admin?new=1 sau /admin?id=<uuid>
+   În Mini App Telegram (Telegram.WebApp.initData nu e gol) nu există parolă: fiecare cerere trimite
+   initData în antet, iar serverul spune rolul — proprietarul vede tot, angajatul doar pâlnia și scanerul.
    ========================================================== */
 (() => {
   const $ = (s, c = document) => c.querySelector(s);
+
+  const TG = window.Telegram && window.Telegram.WebApp;
+  const inTg = !!(TG && TG.initData);
+  // În browser există doar parola, deci proprietarul; în Telegram rolul vine de la server la pornire
+  let role = inTg ? null : 'owner';
+  const isStaff = () => role === 'staff';
+  // Telegram mai vechi nu are toate metodele: ce lipsește se sare, aplicația merge mai departe
+  const tgCall = (method, ...args) => { try { if (inTg && typeof TG[method] === 'function') TG[method](...args); } catch (e) { /* versiune veche */ } };
+  const tgAtLeast = v => inTg && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(v);
+  const haptic = () => { if (tgAtLeast('6.1')) try { TG.HapticFeedback.notificationOccurred('success'); } catch (e) { /* fără vibrație */ } };
+  // Tipurile pe care angajatul le poate salva (serverul refuză oricum restul)
+  const STAFF_DOC_TYPES = ['carte_vizita', 'chestionar', 'aviz', 'chitanta'];
 
   // Etapele pâlniei, în ordine; „Respins” și „Închisă” sunt ieșirile din pâlnie
   const STATUSES = { noua: 'Nouă', contactata: 'Contactată', in_lucru: 'În lucru', procesat: 'Procesat', avans: 'Avans', platit: 'Plătit', incheiat: 'Încheiat', respins: 'Respins', inchisa: 'Închisă' };
@@ -60,12 +74,15 @@
     (empty ? `<option value="">${esc(empty)}</option>` : '') +
     Object.entries(map).map(([k, l]) => `<option value="${k}"${k === selected ? ' selected' : ''}>${esc(l)}</option>`).join('');
 
-  const views = { login: $('#view-login'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail'), fin: $('#view-fin'), dues: $('#view-dues'), cat: $('#view-cat') };
+  const views = { login: $('#view-login'), tg: $('#view-tg'), board: $('#view-board'), list: $('#view-list'), new: $('#view-new'), detail: $('#view-detail'), fin: $('#view-fin'), dues: $('#view-dues'), cat: $('#view-cat') };
+  let current = '';
   function show(name) {
+    current = name;
+    const out = name === 'login' || name === 'tg';
     Object.entries(views).forEach(([k, el]) => { el.hidden = k !== name; });
-    $('#logout').hidden = name === 'login';
-    $('#docBtn').hidden = name === 'login';
-    $('#barNav').hidden = name === 'login';
+    $('#logout').hidden = out || inTg; // în Telegram nu există sesiune cu parolă
+    $('#docBtn').hidden = out;
+    $('#barNav').hidden = out || role !== 'owner'; // secțiunile cu bani: doar proprietarul
     const sec = ['fin', 'dues', 'cat'].includes(name) ? name : 'crm';
     $('#barNav').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.sec === sec));
     if (name === 'fin') document.title = 'Financiar — LUXARCH';
@@ -74,30 +91,140 @@
     $('#toolbar').hidden = name !== 'board' && name !== 'list';
     $('#main').classList.toggle('is-wide', name === 'board');
     $('#viewSwitch').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.view === name));
+    syncBack();
   }
 
   class AuthError extends Error {}
+  // Telegram: initData respins (expirat, fals, ID scos din listă, bot neconfigurat); ecranul e deja afișat
+  class TgError extends AuthError {}
   async function api(path, opts = {}) {
+    const headers = {};
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    if (inTg) headers['X-Telegram-Init-Data'] = TG.initData;
     const r = await fetch(path, {
       ...opts,
-      headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: Object.keys(headers).length ? headers : undefined,
       credentials: 'same-origin',
     });
-    if (r.status === 401) throw new AuthError();
+    if (r.status === 401 && !inTg) throw new AuthError();
     const data = await r.json().catch(() => ({}));
+    // În Telegram nu apare niciodată ecranul cu parola: orice 401 înseamnă initData vechi sau greșit
+    if (inTg && (r.status === 401 || /^tg_/.test(data.error || ''))) {
+      tgScreen(r.status === 401 && !/^tg_/.test(data.error || '') ? 'tg_expired' : data.error, data.tg_id);
+      throw new TgError();
+    }
     if (!r.ok) throw Object.assign(new Error(data.error || `HTTP ${r.status}`), { status: r.status, fields: data.fields || [], data });
     return data;
   }
 
-  // Orice 401 golește ecranul și cere parola din nou
+  const clearScreens = () => { $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = ''; $('#fin').innerHTML = ''; $('#cat').innerHTML = ''; };
+
+  // Orice 401 golește ecranul și cere parola din nou (în Telegram: ecranul cu motivul, fără parolă)
   function onError(err, fallback) {
+    if (err instanceof TgError) { clearScreens(); return; }
     if (err instanceof AuthError) {
-      $('#list').innerHTML = ''; $('#board').innerHTML = ''; $('#detail').innerHTML = ''; $('#fin').innerHTML = ''; $('#cat').innerHTML = '';
+      clearScreens();
       show('login'); $('#pw').focus();
       return;
     }
     fallback(err);
   }
+
+  /* ---------- Mini App Telegram ---------- */
+  const TG_SCREENS = {
+    tg_denied: ['Acces refuzat', 'Nu ai încă acces. Trimite proprietarului ID-ul tău Telegram:'],
+    tg_expired: ['Sesiunea a expirat', 'Sesiunea a expirat. Închide aplicația și deschide-o din nou din butonul CRM.'],
+    tg_bad: ['Sesiunea a expirat', 'Datele Telegram nu au putut fi verificate. Închide aplicația și deschide-o din nou din butonul CRM.'],
+    tg_config: ['Mini App nu e gata', 'Mini App nu e configurată încă (lipsește tokenul botului).'],
+  };
+  function tgScreen(code, tgId) {
+    const [title, text] = TG_SCREENS[code] || TG_SCREENS.tg_bad;
+    document.querySelectorAll('dialog[open]').forEach(d => d.close());
+    $('#tgTitle').textContent = title;
+    $('#tgText').textContent = text;
+    // ID-ul vine de la server (verificat); dacă lipsește, din datele deschise ale Telegramului
+    const id = code === 'tg_denied' ? String(tgId || TG.initDataUnsafe?.user?.id || '') : '';
+    $('#tgId').textContent = id;
+    $('#tgId').hidden = !id;
+    $('#tgCopy').hidden = !id;
+    $('#tgCopy').textContent = 'Copiază ID-ul';
+    $('#tgRetry').hidden = true;
+    $('#toolbar').hidden = true;
+    show('tg');
+  }
+
+  // Copierea merge și unde clipboard-ul modern e blocat (fereastra Telegram): textarea + execCommand
+  $('#tgCopy').addEventListener('click', async e => {
+    const text = $('#tgId').textContent, btn = e.currentTarget;
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (err) {
+      const t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      try { ok = document.execCommand('copy'); } catch (err2) { ok = false; }
+      t.remove();
+    }
+    btn.textContent = ok ? 'Copiat' : 'Ține apăsat pe ID ca să-l copiezi';
+  });
+
+  // Butonul Back al Telegramului: vizibil oriunde în afară de pâlnie (sau când un dialog e deschis)
+  const anyDialog = () => document.querySelector('dialog[open]');
+  function syncBack() {
+    if (!tgAtLeast('6.1')) return;
+    const visible = !!anyDialog() || !['board', 'tg', 'login', ''].includes(current);
+    try { TG.BackButton[visible ? 'show' : 'hide'](); } catch (e) { /* versiune veche */ }
+  }
+  // Face exact ce face „Înapoi” din panou: închide dialogul, altfel linkul „← Înapoi” al ecranului, altfel pâlnia
+  function tgBack() {
+    const open = anyDialog();
+    if (open) { open.close(); return; }
+    const link = views[current] && views[current].querySelector('a.back');
+    go(link ? (link.getAttribute('href').split('?')[1] || '') : '');
+  }
+
+  function tgSetup() {
+    document.documentElement.classList.add('is-tg');
+    tgCall('ready');
+    tgCall('expand');
+    // Tot ecranul pe telefon (Bot API 8.0+); pe Telegram vechi rămâne expand()
+    if (['ios', 'android'].includes(TG.platform) && tgAtLeast('8.0')) tgCall('requestFullscreen');
+    // Derularea în jos nu închide aplicația din greșeală (7.7+)
+    if (tgAtLeast('7.7')) tgCall('disableVerticalSwipes');
+    // Antetul și fundalul Telegramului iau culoarea panoului (tema rămâne deschisă și în tema întunecată)
+    const bg = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#F4F0E8';
+    if (tgAtLeast('6.1')) { tgCall('setHeaderColor', bg); tgCall('setBackgroundColor', bg); }
+    if (tgAtLeast('7.10')) tgCall('setBottomBarColor', bg);
+    if (tgAtLeast('6.1')) try { TG.BackButton.onClick(tgBack); } catch (e) { /* fără Back */ }
+    // Scanerul: „Fotografiază” (camera din spate) și „Alege fișier” (poze sau PDF)
+    $('#docCamLabel').hidden = false;
+    $('#docFileText').textContent = 'Alege fișier';
+  }
+
+  // Rolul primit de la server: angajatul nu vede secțiunile cu bani și tipurile de documente ale proprietarului
+  function applyRole() {
+    document.body.classList.toggle('is-staff', isStaff());
+    const types = Object.entries(DOC_TYPES).filter(([k]) => !isStaff() || STAFF_DOC_TYPES.includes(k));
+    $('#docType').innerHTML = types.map(([k, t]) => `<option value="${k}">${esc(t.label)}</option>`).join('');
+  }
+
+  // Pornirea: în browser direct la ecranul cerut; în Telegram întâi rolul (o rută permisă ambelor roluri)
+  async function boot() {
+    if (!inTg) return route();
+    tgSetup();
+    try {
+      ({ role } = await api('/api/admin/requests?me=1'));
+      applyRole();
+      route();
+    } catch (err) {
+      onError(err, () => {
+        tgScreen('tg_bad');
+        $('#tgTitle').textContent = 'Nu s-a putut porni';
+        $('#tgText').textContent = 'Nu am putut încărca panoul. Verifică internetul și reîncearcă.';
+        $('#tgRetry').hidden = false;
+      });
+    }
+  }
+  $('#tgRetry').addEventListener('click', boot);
 
   /* ---------- Navigare ---------- */
   const params = () => new URLSearchParams(location.search);
@@ -107,7 +234,10 @@
   }
   function route() {
     const p = params();
-    window.LUXDUES.refreshCount(); // numărul de restanțe din antet, la fiecare navigare
+    // Angajatul nu are Financiar, Scadențe și Catalog: o adresă veche duce la pâlnie
+    if (isStaff() && (p.get('fin') || p.get('due') || p.get('cat'))) return go('', true);
+    // Numărul de restanțe din antet, la fiecare navigare (doar proprietarul; angajatul ar primi 403)
+    if (role === 'owner') window.LUXDUES.refreshCount();
     if (p.get('fin')) { ++loadSeq; window.LUXFIN.route(p); }
     else if (p.get('due')) { ++loadSeq; window.LUXDUES.route(p); }
     else if (p.get('cat')) { ++loadSeq; window.LUXCAT.route(p); }
@@ -178,12 +308,13 @@
     const dlg = $('#rejectDlg'), form = $('#rejectDlgForm'), text = $('#rejectDlgText'), msg = $('#rejectDlgMsg');
     $('#rejectDlgWho').textContent = who;
     text.value = ''; msg.textContent = '';
-    dlg.showModal(); text.focus();
+    dlg.showModal(); text.focus(); syncBack();
     return new Promise(resolve => {
       function done(value) {
         form.removeEventListener('submit', onSubmit);
         dlg.removeEventListener('close', onClose);
         if (dlg.open) dlg.close();
+        syncBack();
         resolve(value);
       }
       function onSubmit(e) {
@@ -221,6 +352,15 @@
     </article>`;
   }
 
+  // Telegram pe telefon: o singură etapă pe ecran, aleasă din rândul de sus și păstrată în adresă (?stage=)
+  const phoneMq = window.matchMedia('(max-width: 700px)');
+  const stageOf = () => (STATUSES[params().get('stage')] ? params().get('stage') : 'noua');
+  function markStage() {
+    const s = stageOf();
+    board.querySelectorAll('.col').forEach(col => col.classList.toggle('is-current', col.dataset.status === s));
+    $('#stageTabs').querySelectorAll('a').forEach(a => a.classList.toggle('is-on', a.dataset.stage === s));
+  }
+
   function renderBoard() {
     const items = [...boardItems.values()];
     board.innerHTML = Object.keys(STATUSES).map(s => `
@@ -228,14 +368,29 @@
         <header class="col-head">${badge(s)}<span class="count"></span></header>
         <div class="col-body">${items.filter(r => r.status === s).map(cardHtml).join('')}</div>
       </section>`).join('');
+    $('#stageTabs').innerHTML = inTg ? Object.entries(STATUSES).map(([k, l]) =>
+      `<a class="filter" href="/admin?stage=${k}" data-stage="${k}">${esc(l)}<span class="count"></span></a>`).join('') : '';
+    markStage();
     updateCounts();
   }
+
+  // Alegerea etapei nu reîncarcă tabla: doar adresa (ca Back din fișă să revină aici) și coloana afișată
+  $('#stageTabs').addEventListener('click', e => {
+    const a = e.target.closest('a[data-stage]');
+    if (!a) return;
+    e.preventDefault();
+    history.replaceState(null, '', '/admin?stage=' + a.dataset.stage);
+    markStage();
+    a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  });
 
   function updateCounts() {
     board.querySelectorAll('.col').forEach(col => {
       const n = col.querySelectorAll('.card').length;
       col.querySelector('.count').textContent = n;
       col.classList.toggle('is-empty', !n);
+      const tab = $(`#stageTabs a[data-stage="${col.dataset.status}"] .count`);
+      if (tab) tab.textContent = n;
     });
     setTitle([...boardItems.values()].filter(r => r.status === 'noua').length);
   }
@@ -267,6 +422,7 @@
         method: 'PATCH', body: JSON.stringify({ status: next, comment }),
       });
       Object.assign(r, item);
+      haptic();
     } catch (err) {
       r.status = prev; placeCard(r);
       onError(err, () => { msg.textContent = `Nu am putut muta „${r.name}”. Reîncercați.`; });
@@ -299,6 +455,8 @@
   board.addEventListener('dragstart', e => {
     const card = e.target.closest('.card');
     if (!card) return;
+    // În Telegram pe telefon se mută doar din „Mută în…”: tragerea ar lupta cu derularea
+    if (inTg && phoneMq.matches) { e.preventDefault(); return; }
     dragId = card.dataset.id;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', dragId);
@@ -340,7 +498,7 @@
     const card = e.target.closest('.card');
     if (!card || (e.target.closest('a') && (e.metaKey || e.ctrlKey))) return;
     e.preventDefault();
-    go(`id=${encodeURIComponent(card.dataset.id)}`);
+    go(detailQs(card.dataset.id)); // păstrează etapa aleasă (?stage=), pentru „Înapoi”
   });
 
   /* ---------- Lista ---------- */
@@ -507,7 +665,7 @@
                 <span class="status-note" id="notesNote"></span>
               </div>
             </dd>
-            <dt>Plăți</dt>
+            ${isStaff() ? '' : `<dt>Plăți</dt>
             <dd class="pay">
               <div class="pay-contract">
                 <label class="new-field"><span class="admin-label">Valoare contract</span>
@@ -533,13 +691,14 @@
                 <p class="status-note err" id="payMsg" role="alert"></p>
               </form>
               ${recsHtml}
-            </dd>
+            </dd>`}
             <dt>Istoric etape</dt><dd><ol class="history" id="history">${historyHtml(hist)}</ol></dd>
           </dl>
         </article>`;
       const moveTo = bindStatus(r);
       bindNotes(r);
-      bindPayments(r, pays || [], moveTo);
+      // Angajatul nu are plăți și rate (serverul nici nu le trimite)
+      if (!isStaff()) bindPayments(r, pays || [], moveTo);
     } catch (err) {
       if (seq !== loadSeq) return;
       onError(err, e => {
@@ -794,6 +953,8 @@
 
   function step(name) {
     dlg.querySelectorAll('.doc-step').forEach(s => { s.hidden = s.dataset.step !== name; });
+    // Telegram: cât timp ecranul de verificare are date nesalvate, închiderea aplicației cere confirmare (6.2+)
+    if (tgAtLeast('6.2')) tgCall(name === 'review' ? 'enableClosingConfirmation' : 'disableClosingConfirmation');
   }
 
   function thumbsHtml(small) {
@@ -850,9 +1011,10 @@
     return blob;
   }
 
-  $('#docBtn').addEventListener('click', () => { resetDoc(); dlg.showModal(); });
+  $('#docBtn').addEventListener('click', () => { resetDoc(); dlg.showModal(); syncBack(); });
 
-  $('#docFile').addEventListener('change', async e => {
+  // Aceeași prelucrare pentru „Alege fișier” și pentru „Fotografiază” (camera, doar în Telegram)
+  async function onPicked(e) {
     const picked = [...e.target.files];
     e.target.value = '';
     docMsg.textContent = '';
@@ -881,7 +1043,9 @@
     }
     dropUpload();
     renderThumbs();
-  });
+  }
+  $('#docFile').addEventListener('change', onPicked);
+  $('#docCam').addEventListener('change', onPicked);
 
   $('#docThumbs').addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
@@ -954,7 +1118,12 @@
     doc.dupes = list;
     const box = $('#docDupes'), form = formOf(doc.type);
     box.hidden = !list.length;
-    box.innerHTML = !list.length ? '' : form ? form.dupes(list)
+    // Angajatul vede cheltuiala existentă fără sumă și fără link (serverul nu le trimite)
+    const staffExp = isStaff() && ['aviz', 'chitanta'].includes(doc.type);
+    box.innerHTML = !list.length ? '' : staffExp ? `<p><b>Pare să existe deja:</b></p><ul>${list.map(d =>
+      `<li>${esc(d.supplier)}${d.doc_number ? `, nr. ${esc(d.doc_number)}` : ''}, ${esc(fmtPayDay(d.doc_date))}</li>`).join('')}</ul>
+      <p class="muted">Dacă e alt document, apasă „Salvează oricum”.</p>`
+      : form ? form.dupes(list)
       : `<p><b>Există deja:</b></p><ul>${list.map(d =>
         `<li>${esc(d.name)} (${esc(d.status)}) <button class="link-btn" type="button" data-open="${esc(d.id)}">Deschide clientul existent</button></li>`).join('')}</ul>
       <p class="muted">Dacă e altă persoană, apasă „Creează oricum”.</p>`;
@@ -978,7 +1147,12 @@
       }
       if (!res.supported) {
         doc.type = res.doc_type;
-        $('#docUnsupported').textContent = `Tip recunoscut: ${DOC_TYPES[res.doc_type].label}. Secțiunea nu e gata încă, nu s-a salvat nimic.`;
+        const owner = res.reason === 'owner_only';
+        // Angajatul: serverul a șters deja fișierele; „Schimbă tipul” le urcă din nou
+        if (owner) doc.token = null;
+        $('#docUnsupported').textContent = owner ? 'Doar proprietarul poate salva acest tip de document.'
+          : `Tip recunoscut: ${DOC_TYPES[res.doc_type].label}. Secțiunea nu e gata încă, nu s-a salvat nimic.`;
+        $('#docAnother').hidden = !owner;
         return step('unsupported');
       }
       showReview(res.doc_type, res.fields, res.duplicates, { matches: res.client_matches || [] });
@@ -1057,6 +1231,15 @@
         body: JSON.stringify({ token: doc.token || crypto.randomUUID(), doc_type: doc.type, fields, force: doc.dupes.length > 0 }),
       });
       doc.saved = true;
+      haptic();
+      // Angajatul nu are Financiar: rămâne în dialog, cu confirmarea și „Încarcă alt document”
+      if (isStaff() && res.kind === 'expense') {
+        const amount = parseMoney(fields.amount_total);
+        $('#docDoneText').textContent = `Cheltuială salvată: ${fields.supplier}, ${fmtPayDay(fields.doc_date)}, ${amount === null ? fields.amount_total : num(amount)} ${fields.currency}`
+          + (res.filesError ? '. Fișierele nu s-au salvat.' : '');
+        step('done');
+        return;
+      }
       dlg.close();
       if (res.filesError) alert('Înregistrarea a fost creată, dar fișierele nu s-au salvat.');
       window.LUXDUES.resetClients();
@@ -1095,8 +1278,14 @@
   window.LUXCAT.init(helpers);
 
   // Închiderea fără salvare: fișierele temporare se șterg
-  ['#docClose', '#docCancel', '#docUnsupportedClose'].forEach(s => $(s).addEventListener('click', () => dlg.close()));
-  dlg.addEventListener('close', () => { if (!doc.saved) dropUpload(); });
+  ['#docClose', '#docCancel', '#docUnsupportedClose', '#docDoneClose'].forEach(s => $(s).addEventListener('click', () => dlg.close()));
+  dlg.addEventListener('close', () => {
+    if (!doc.saved) dropUpload();
+    if (tgAtLeast('6.2')) tgCall('disableClosingConfirmation');
+    syncBack();
+  });
+  // Încă un document fără să închidă dialogul (după refuzul „owner_only” sau după o cheltuială salvată)
+  ['#docAnother', '#docDoneAnother'].forEach(s => $(s).addEventListener('click', () => { if (!doc.saved) dropUpload(); resetDoc(); }));
 
-  route();
+  boot();
 })();

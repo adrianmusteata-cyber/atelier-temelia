@@ -12,6 +12,8 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="admin.css">
+  <!-- Mini App Telegram: în browserul obișnuit Telegram.WebApp.initData e gol și panoul merge ca până acum -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body class="admin">
   <header class="admin-bar">
@@ -47,6 +49,17 @@
       </form>
     </section>
 
+    <!-- Mini App Telegram: acces refuzat, sesiune expirată sau bot neconfigurat (în locul ecranului cu parolă) -->
+    <section id="view-tg" class="admin-view" hidden>
+      <div class="login-card tg-card">
+        <h1 id="tgTitle">Acces refuzat</h1>
+        <p class="muted" id="tgText"></p>
+        <p class="tg-id" id="tgId" hidden></p>
+        <button class="btn" type="button" id="tgCopy" hidden>Copiază ID-ul</button>
+        <button class="btn btn-ghost" type="button" id="tgRetry" hidden>Reîncearcă</button>
+      </div>
+    </section>
+
     <!-- Comune pentru tablă și listă -->
     <div class="admin-head" id="toolbar" hidden>
       <h1 class="admin-title">Clienți</h1>
@@ -62,6 +75,8 @@
     <!-- Tabla pâlniei de vânzări -->
     <section id="view-board" class="admin-view" hidden>
       <p class="admin-msg" id="boardMsg" role="status"></p>
+      <!-- Doar în Telegram, pe telefon: etapele cu numărul de clienți; sub ele, cardurile etapei alese -->
+      <nav class="status-filter stage-tabs" id="stageTabs" aria-label="Etapă"></nav>
       <div class="board" id="board"></div>
     </section>
 
@@ -141,10 +156,17 @@
     <section class="doc-step" data-step="pick">
       <p class="muted">Fotografiați documentul sau alegeți o poză / un PDF. La o carte de vizită puteți adăuga și verso.
         Până la 5 poze (paginile aceluiași document) sau un singur PDF (10 MB; o listă de prețuri până la 20 MB).</p>
-      <label class="btn btn-sm btn-ghost doc-file">
-        <input type="file" id="docFile" accept="image/*,application/pdf" multiple>
-        Fotografiază / alege fișier
-      </label>
+      <div class="doc-pick">
+        <!-- În Telegram: camera din spate direct; în browser rămâne un singur buton, ca până acum -->
+        <label class="btn btn-sm doc-file" id="docCamLabel" hidden>
+          <input type="file" id="docCam" accept="image/*" capture="environment">
+          Fotografiază
+        </label>
+        <label class="btn btn-sm btn-ghost doc-file">
+          <input type="file" id="docFile" accept="image/*,application/pdf" multiple>
+          <span id="docFileText">Fotografiază / alege fișier</span>
+        </label>
+      </div>
       <ul class="doc-thumbs" id="docThumbs"></ul>
       <div class="reject-actions">
         <button class="btn btn-sm" type="button" id="docRead" disabled>Citește</button>
@@ -165,8 +187,18 @@
     <section class="doc-step" data-step="unsupported" hidden>
       <p class="admin-msg" id="docUnsupported"></p>
       <div class="reject-actions">
+        <button class="btn btn-sm" type="button" id="docAnother" hidden>Încarcă alt document</button>
         <button class="btn btn-sm btn-ghost" type="button" id="docChangeType">Schimbă tipul</button>
         <button class="btn btn-sm" type="button" id="docUnsupportedClose">Închide</button>
+      </div>
+    </section>
+
+    <!-- 5. Angajatul a salvat o cheltuială: doar confirmarea, fără Financiar -->
+    <section class="doc-step" data-step="done" hidden>
+      <p class="admin-msg ok" id="docDoneText"></p>
+      <div class="reject-actions">
+        <button class="btn btn-sm" type="button" id="docDoneAnother">Încarcă alt document</button>
+        <button class="btn btn-sm btn-ghost" type="button" id="docDoneClose">Închide</button>
       </div>
     </section>
 

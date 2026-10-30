@@ -443,3 +443,62 @@ body.admin {
   .cat-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .cat-filters input[type="search"] { grid-column: 1 / -1; }
 }
+
+/* ==========================================================
+   Mini App Telegram (html.is-tg): în browserul obișnuit nimic de aici nu se aplică
+   ========================================================== */
+.stage-tabs { display: none; }
+.doc-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.tg-card { text-align: center; align-items: center; }
+.tg-id { font-size: 2.2rem; font-weight: 700; letter-spacing: .06em; color: var(--ink); user-select: all; -webkit-user-select: all; overflow-wrap: anywhere; }
+
+/* Zonele sigure: decupajul camerei (safe-area) și butoanele Telegram peste conținut (content-safe-area) */
+html.is-tg {
+  --tg-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+  --tg-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
+  --tg-left: calc(var(--tg-safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px));
+  --tg-right: calc(var(--tg-safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px));
+  background: #F4F0E8; color-scheme: light;
+}
+.is-tg body { padding: 0 var(--tg-right) var(--tg-bottom) var(--tg-left); background: #F4F0E8; }
+/* Antetul rămâne lipit sus și acoperă cu fundalul lui zona de sub butoanele Telegram */
+.is-tg .admin-bar { padding: calc(10px + max(env(safe-area-inset-top), var(--tg-top))) 0 10px; }
+.is-tg .admin-main { padding-bottom: calc(40px + var(--tg-bottom)); }
+
+/* Butoane ușor de apăsat (44×44) și câmpuri de 16px, ca iOS să nu mărească pagina */
+.is-tg .btn, .is-tg .filter, .is-tg .link-btn, .is-tg .back, .is-tg select, .is-tg .admin-input, .is-tg .card-move, .is-tg .status-select { min-height: 44px; }
+.is-tg .filter, .is-tg .link-btn, .is-tg .back { display: inline-flex; align-items: center; min-width: 44px; justify-content: center; }
+.is-tg .cat-pick-list .link-btn { justify-content: flex-start; }
+.is-tg input, .is-tg select, .is-tg textarea { font-size: max(16px, 1em); }
+.is-tg .exp-cell .admin-input, .is-tg .cat-pick .admin-input { font-size: 16px; }
+
+@media (max-width: 700px) {
+  /* Pâlnia: rândul de etape derulează în el, sub el cardurile etapei alese, pe toată lățimea */
+  .is-tg .stage-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; }
+  .is-tg .stage-tabs .filter { flex: none; }
+  .is-tg .stage-tabs .filter.is-on .count { opacity: .85; }
+  .is-tg .board { display: block; overflow: visible; padding-bottom: 0; }
+  .is-tg .col { display: none; background: none; border: 0; }
+  .is-tg .col.is-current { display: flex; }
+  .is-tg .col-head { display: none; }
+  .is-tg .col-body { padding: 0; min-height: 0; gap: 10px; }
+  .is-tg .col.is-empty .col-body::after { content: 'Niciun client în această etapă.'; margin: 16px 0; }
+  .is-tg .card { cursor: pointer; padding: 14px; }
+
+  /* Scanerul: dialogul pe tot ecranul, o singură coloană, „Salvează” și „Renunță” la vedere jos */
+  .is-tg .doc-dialog, .is-tg .doc-dialog.is-wide {
+    width: 100%; max-width: 100%; height: 100vh; height: 100dvh; max-height: none; margin: 0; inset: 0;
+    border: 0; border-radius: 0;
+    padding: calc(12px + var(--tg-top)) calc(14px + var(--tg-right)) 0 calc(14px + var(--tg-left));
+  }
+  .is-tg .doc-dialog .new-grid { grid-template-columns: 1fr; }
+  .is-tg .doc-dialog .doc-step { padding-bottom: calc(16px + var(--tg-bottom)); }
+  .is-tg #docForm { padding-bottom: 0; }
+  .is-tg #docForm > .reject-actions {
+    position: sticky; bottom: 0; z-index: 2; margin: 0 -14px; padding: 10px 14px calc(10px + var(--tg-bottom));
+    background: #fff; border-top: 1px solid var(--line);
+  }
+  .is-tg #docForm > .reject-actions .btn { flex: 1; }
+  .is-tg .doc-pick .doc-file { flex: 1 1 140px; align-self: stretch; }
+  .is-tg .reject-dialog { max-height: calc(100dvh - var(--tg-top) - var(--tg-bottom) - 24px); overflow-y: auto; }
+}
